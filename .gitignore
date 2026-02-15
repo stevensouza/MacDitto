@@ -30,3 +30,11 @@ output/*.sh
 output/*.md
 output/*.json
 !output/.gitkeep
+
+# Scanned profiles (contain personal software inventory - never commit)
+profiles/*.json
+!profiles/.gitkeep
+
+# Config files containing personal software/browser lists
+configs/
+output/configs/
