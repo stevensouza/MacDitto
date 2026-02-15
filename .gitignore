@@ -38,3 +38,4 @@ profiles/*.json
 # Config files containing personal software/browser lists
 configs/
 output/configs/
+scan_results.json
