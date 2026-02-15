@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - MacDitto{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    {% if profile %}
+        <div class="header">
+            <h2>Mac Configuration</h2>
+            <div class="scan-info">
+                <p><strong>Machine:</strong> {{ profile.machine_name }}</p>
+                <p><strong>Scanned:</strong> {{ profile.scan_date }}</p>
+            </div>
+        </div>
+
+        <div class="summary">
+            <h3>Summary</h3>
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <div class="card-number">{{ profile.homebrew_formulae|length }}</div>
+                    <div class="card-label">Brew Packages</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-number">{{ profile.homebrew_casks|length }}</div>
+                    <div class="card-label">Cask Apps</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-number">{{ profile.applications|length }}</div>
+                    <div class="card-label">Applications</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-number">{{ profile.browser_extensions|length }}</div>
+                    <div class="card-label">Extensions</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-number">{{ profile.system_preferences|length }}</div>
+                    <div class="card-label">Preferences</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="items-section">
+            <h3>Installed Items</h3>
+
+            {% for category, items in items_by_category.items() %}
+            <div class="category-section">
+                <div class="category-header" onclick="toggleCategory('{{ category }}')">
+                    <h4>{{ category }}</h4>
+                    <span class="category-count">{{ items|length }} items</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div id="category-{{ category }}" class="category-items">
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>Enabled</th>
+                                <th>Name</th>
+                                <th>Install Method</th>
+                                <th>Flags</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox"
+                                           {% if item.enabled %}checked{% endif %}
+                                           onchange="toggleItem('{{ item.item_type }}', {{ loop.index0 }}, this.checked)">
+                                </td>
+                                <td class="item-name">{{ item.name }}</td>
+                                <td>
+                                    <span class="badge badge-{{ item.install_method }}">
+                                        {{ item.install_method }}
+                                    </span>
+                                </td>
+                                <td class="item-flags">
+                                    {% if item.in_dock %}
+                                        <span class="flag" title="In Dock">📌</span>
+                                    {% endif %}
+                                    {% if item.start_on_login %}
+                                        <span class="flag" title="Start on Login">▶️</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if profile.browser_extensions %}
+        <div class="extensions-section">
+            <h3>Browser Extensions</h3>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Enabled</th>
+                        <th>Name</th>
+                        <th>Browser</th>
+                        <th>Version</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ext in profile.browser_extensions %}
+                    <tr>
+                        <td>
+                            <input type="checkbox"
+                                   {% if ext.enabled %}checked{% endif %}
+                                   onchange="toggleItem('browser_extension', {{ loop.index0 }}, this.checked)">
+                        </td>
+                        <td>{{ ext.name }}</td>
+                        <td>{{ ext.browser }}</td>
+                        <td>{{ ext.version }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {% if profile.system_preferences %}
+        <div class="preferences-section">
+            <h3>System Preferences</h3>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Value</th>
+                        <th>Domain</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pref in profile.system_preferences %}
+                    <tr>
+                        <td>{{ pref.description }}</td>
+                        <td><code>{{ pref.value }}</code></td>
+                        <td><small>{{ pref.domain }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <div class="empty-state">
+            <h2>No profile loaded</h2>
+            <p>Click "Scan" to analyze your Mac configuration, or load a saved profile.</p>
+            <button onclick="runScan()" class="btn-primary">Run Scan</button>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleCategory(category) {
+    const element = document.getElementById('category-' + category);
+    element.classList.toggle('collapsed');
+}
+
+function toggleItem(itemType, index, enabled) {
+    fetch('/toggle_item', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            item_type: itemType,
+            index: index,
+            enabled: enabled
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Item updated');
+        } else {
+            showToast('Error: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showToast('Error updating item', 'error');
+        console.error('Error:', error);
+    });
+}
+</script>
+{% endblock %}

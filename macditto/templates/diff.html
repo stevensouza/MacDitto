@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Profile Comparison - MacDitto{% endblock %}
+
+{% block content %}
+<div class="diff-view">
+    <h2>Profile Comparison</h2>
+
+    <div class="diff-header">
+        <div class="profile-info">
+            <h3>{{ profile1 }}</h3>
+            <p>Scanned: {{ p1.scan_date }}</p>
+            <p>Machine: {{ p1.machine_name }}</p>
+        </div>
+        <div class="diff-arrow">→</div>
+        <div class="profile-info">
+            <h3>{{ profile2 }}</h3>
+            <p>Scanned: {{ p2.scan_date }}</p>
+            <p>Machine: {{ p2.machine_name }}</p>
+        </div>
+    </div>
+
+    <div class="diff-summary">
+        <div class="diff-stat added">
+            <div class="stat-number">{{ diff.added|length }}</div>
+            <div class="stat-label">Added</div>
+        </div>
+        <div class="diff-stat removed">
+            <div class="stat-number">{{ diff.removed|length }}</div>
+            <div class="stat-label">Removed</div>
+        </div>
+        <div class="diff-stat common">
+            <div class="stat-number">{{ diff.common|length }}</div>
+            <div class="stat-label">Common</div>
+        </div>
+    </div>
+
+    {% if diff.added %}
+    <div class="diff-section">
+        <h3 class="section-title added">Added Items</h3>
+        <ul class="diff-list">
+            {% for item in diff.added %}
+            <li class="diff-item added">+ {{ item }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if diff.removed %}
+    <div class="diff-section">
+        <h3 class="section-title removed">Removed Items</h3>
+        <ul class="diff-list">
+            {% for item in diff.removed %}
+            <li class="diff-item removed">- {{ item }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if diff.common %}
+    <div class="diff-section">
+        <h3 class="section-title common">Common Items ({{ diff.common|length }})</h3>
+        <details>
+            <summary>Show common items</summary>
+            <ul class="diff-list">
+                {% for item in diff.common %}
+                <li class="diff-item common">{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </details>
+    </div>
+    {% endif %}
+
+    <div class="actions">
+        <a href="/" class="btn">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}
