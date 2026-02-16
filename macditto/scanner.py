@@ -33,11 +33,18 @@ class Scanner:
     - macOS system preferences
     """
 
-    def __init__(self):
-        """Initialize Scanner with home directory and common paths."""
+    def __init__(self, progress_callback=None):
+        """
+        Initialize Scanner with home directory and common paths.
+
+        Args:
+            progress_callback: Optional callback function for progress updates.
+                               Called with (step_name, step_number, total_steps, item_counts)
+        """
         self.home_dir = get_home_directory()
         self.applications_dir = "/Applications"
         self.user_applications_dir = os.path.join(self.home_dir, "Applications")
+        self.progress_callback = progress_callback
 
     def scan_homebrew(self) -> tuple[List[Item], List[Item]]:
         """
@@ -633,21 +640,35 @@ class Scanner:
             machine_name=machine_name
         )
 
-        # Scan Homebrew
+        # Initialize item counts dict
+        item_counts = {}
+        total_steps = 10
+
+        # Step 1: Scan Homebrew
+        if self.progress_callback:
+            self.progress_callback("Scanning Homebrew packages", 1, total_steps, item_counts)
         print("Scanning Homebrew packages...")
         formulae, casks = self.scan_homebrew()
         profile.homebrew_formulae = formulae
         profile.homebrew_casks = casks
+        item_counts['homebrew_formulae'] = len(formulae)
+        item_counts['homebrew_casks'] = len(casks)
         print(f"  Found {len(formulae)} formulae and {len(casks)} casks")
 
-        # Scan applications
+        # Step 2: Scan applications
+        if self.progress_callback:
+            self.progress_callback("Scanning installed applications", 2, total_steps, item_counts)
         print("Scanning installed applications...")
         profile.applications = self.scan_applications()
+        item_counts['applications'] = len(profile.applications)
         print(f"  Found {len(profile.applications)} applications")
 
-        # Scan Dock
+        # Step 3: Scan Dock
+        if self.progress_callback:
+            self.progress_callback("Scanning Dock items", 3, total_steps, item_counts)
         print("Scanning Dock items...")
         profile.dock_items = self.scan_dock_items()
+        item_counts['dock_items'] = len(profile.dock_items)
         print(f"  Found {len(profile.dock_items)} Dock items")
 
         # Mark items that are in Dock
@@ -657,9 +678,12 @@ class Scanner:
                 if item.name in dock_names:
                     item.in_dock = True
 
-        # Scan login items
+        # Step 4: Scan login items
+        if self.progress_callback:
+            self.progress_callback("Scanning login items", 4, total_steps, item_counts)
         print("Scanning login items...")
         profile.login_items = self.scan_login_items()
+        item_counts['login_items'] = len(profile.login_items)
         print(f"  Found {len(profile.login_items)} login items")
 
         # Mark items that start on login
@@ -669,32 +693,51 @@ class Scanner:
                 if item.name in login_names:
                     item.start_on_login = True
 
-        # Scan shell configs
+        # Step 5: Scan shell configs
+        if self.progress_callback:
+            self.progress_callback("Scanning shell configurations", 5, total_steps, item_counts)
         print("Scanning shell configurations...")
         profile.shell_configs = self.scan_shell_configs()
+        item_counts['shell_configs'] = len(profile.shell_configs)
         print(f"  Found {len(profile.shell_configs)} shell config files")
 
-        # Scan Git config
+        # Step 6: Scan Git config
+        if self.progress_callback:
+            self.progress_callback("Scanning Git configuration", 6, total_steps, item_counts)
         print("Scanning Git configuration...")
         profile.git_config = self.scan_git_config()
+        item_counts['git_config'] = 1 if profile.git_config else 0
         if profile.git_config:
             print("  Found .gitconfig")
 
-        # Scan browser extensions
+        # Step 7: Scan browser extensions
+        if self.progress_callback:
+            self.progress_callback("Scanning browser extensions", 7, total_steps, item_counts)
         print("Scanning browser extensions...")
         profile.browser_extensions = self.scan_browser_extensions()
+        item_counts['browser_extensions'] = len(profile.browser_extensions)
         print(f"  Found {len(profile.browser_extensions)} browser extensions")
 
-        # Scan browser bookmarks
+        # Step 8: Scan browser bookmarks
+        if self.progress_callback:
+            self.progress_callback("Scanning browser bookmarks", 8, total_steps, item_counts)
         print("Scanning browser bookmarks...")
         profile.browser_bookmarks = self.scan_browser_bookmarks()
         bookmark_count = sum(1 for _ in profile.browser_bookmarks.keys())
+        item_counts['browser_bookmarks'] = bookmark_count
         print(f"  Found bookmarks for {bookmark_count} browsers")
 
-        # Scan macOS preferences
+        # Step 9: Scan macOS preferences
+        if self.progress_callback:
+            self.progress_callback("Scanning macOS system preferences", 9, total_steps, item_counts)
         print("Scanning macOS system preferences...")
         profile.system_preferences = self.scan_macos_preferences()
+        item_counts['system_preferences'] = len(profile.system_preferences)
         print(f"  Found {len(profile.system_preferences)} system preferences")
+
+        # Step 10: Finalization
+        if self.progress_callback:
+            self.progress_callback("Finalizing scan results", 10, total_steps, item_counts)
 
         print("\nScan complete!")
         return profile

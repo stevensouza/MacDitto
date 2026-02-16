@@ -20,6 +20,7 @@
                 <a href="#" onclick="saveProfile()">Save</a>
                 <a href="#" onclick="exportProfile()">Export</a>
                 <a href="#" onclick="showExportHistory()">Export History</a>
+                <a href="#" onclick="showScanHistory()">Scan History</a>
                 <a href="/view_json">View JSON</a>
                 <a href="/help">Help</a>
             </div>
@@ -61,6 +62,35 @@
                 View and access your previous exports. Click on any file to view it. <strong style="color: var(--cyan-bright);">Most recent exports appear first.</strong>
             </p>
             <div id="exportHistoryList" style="max-height: 60vh; overflow-y: auto; overflow-x: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Scan Progress modal -->
+    <div id="scanProgressModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2>Scanning System</h2>
+            <div class="scan-progress-container">
+                <div class="progress-bar-container">
+                    <div id="progressBar" class="progress-bar"></div>
+                    <div id="progressPercentage" class="progress-percentage">0%</div>
+                </div>
+                <div id="progressStep" class="progress-step">Initializing scan...</div>
+                <div id="progressCounter" class="progress-counter">Step 0 of 10</div>
+                <div id="progressItemCounts" class="progress-item-counts"></div>
+                <div id="progressError" class="progress-error" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan History modal -->
+    <div id="scanHistoryModal" class="modal">
+        <div class="modal-content" style="max-width: 1200px; width: 95%;">
+            <span class="close" onclick="closeScanHistoryModal()">&times;</span>
+            <h2>Scan History</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.95rem;">
+                View your past system scans. <strong style="color: var(--cyan-bright);">Most recent scans appear first.</strong>
+            </p>
+            <div id="scanHistoryList" style="max-height: 60vh; overflow-y: auto; overflow-x: auto;"></div>
         </div>
     </div>
 

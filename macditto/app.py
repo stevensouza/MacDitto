@@ -6,9 +6,11 @@ Provides web interface for scanning, viewing, saving, and managing Mac configura
 
 import os
 import json
+import time
+import threading
 from datetime import datetime
 from pathlib import Path
-from flask import Flask, render_template, jsonify, request, send_file, redirect, url_for
+from flask import Flask, render_template, jsonify, request, send_file, redirect, url_for, Response
 
 from .scanner import Scanner
 from .models import ScanProfile
@@ -22,6 +24,20 @@ current_profile = None
 profiles_dir = Path(__file__).parent.parent / 'profiles'
 output_dir = Path(__file__).parent.parent / 'output'
 export_history_file = output_dir / 'export_history.json'
+scan_history_file = output_dir / 'scan_history.json'
+
+# Global variables for scan tracking
+scan_in_progress = False
+scan_progress = {
+    'current_step': '',
+    'step_number': 0,
+    'total_steps': 10,
+    'percentage': 0,
+    'item_counts': {},
+    'completed': False,
+    'error': None
+}
+scan_start_time = None
 
 # Ensure directories exist
 profiles_dir.mkdir(exist_ok=True)
@@ -72,30 +88,131 @@ def dashboard():
 def scan():
     """
     Run new scan using Scanner.scan_all().
-    Returns JSON with scan results.
+    Launches scan in background thread and returns immediately.
     """
-    global current_profile
+    global scan_in_progress, scan_progress, scan_start_time
 
-    try:
-        scanner = Scanner()
-        current_profile = scanner.scan_all()
-
-        # Organize items for response
-        items_by_category = organize_items_by_category(current_profile)
-        category_counts = {category: len(items) for category, items in items_by_category.items()}
-
-        return jsonify({
-            'success': True,
-            'message': 'Scan completed successfully',
-            'scan_date': current_profile.scan_date,
-            'machine_name': current_profile.machine_name,
-            'category_counts': category_counts
-        })
-    except Exception as e:
+    # Check if scan already running
+    if scan_in_progress:
         return jsonify({
             'success': False,
+            'error': 'Scan already in progress'
+        }), 409
+
+    # Reset progress state
+    scan_in_progress = True
+    scan_start_time = time.time()
+    scan_progress = {
+        'current_step': 'Initializing scan',
+        'step_number': 0,
+        'total_steps': 10,
+        'percentage': 0,
+        'item_counts': {},
+        'completed': False,
+        'error': None
+    }
+
+    # Launch scan in background thread
+    thread = threading.Thread(target=run_scan_background)
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({
+        'success': True,
+        'message': 'Scan started'
+    })
+
+
+def run_scan_background():
+    """
+    Run scan in background thread with progress tracking.
+    """
+    global current_profile, scan_in_progress, scan_progress, scan_start_time
+
+    def progress_callback(step_name, step_number, total_steps, item_counts):
+        """Update global scan progress."""
+        global scan_progress
+        scan_progress = {
+            'current_step': step_name,
+            'step_number': step_number,
+            'total_steps': total_steps,
+            'percentage': int((step_number / total_steps) * 100),
+            'item_counts': item_counts.copy(),
+            'completed': False,
+            'error': None
+        }
+
+    try:
+        scanner = Scanner(progress_callback=progress_callback)
+        current_profile = scanner.scan_all()
+
+        # Calculate duration
+        duration = time.time() - scan_start_time
+
+        # Mark as completed
+        scan_progress['completed'] = True
+        scan_progress['percentage'] = 100
+
+        # Save to scan history
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        scan_record = {
+            'timestamp': timestamp,
+            'scan_date': current_profile.scan_date,
+            'end_date': datetime.now().isoformat(),
+            'duration_seconds': round(duration, 2),
+            'machine_name': current_profile.machine_name,
+            'item_counts': scan_progress['item_counts'].copy(),
+            'status': 'completed'
+        }
+        save_scan_history(scan_record)
+
+    except Exception as e:
+        # Mark as error
+        scan_progress['error'] = str(e)
+        scan_progress['completed'] = True
+
+        # Save failed scan to history
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        duration = time.time() - scan_start_time
+        scan_record = {
+            'timestamp': timestamp,
+            'scan_date': datetime.now().isoformat(),
+            'end_date': datetime.now().isoformat(),
+            'duration_seconds': round(duration, 2),
+            'machine_name': 'Unknown',
+            'item_counts': {},
+            'status': 'failed',
             'error': str(e)
-        }), 500
+        }
+        save_scan_history(scan_record)
+
+    finally:
+        scan_in_progress = False
+
+
+@app.route('/scan_progress')
+def scan_progress_stream():
+    """
+    Server-Sent Events endpoint for scan progress updates.
+    Streams progress updates every 250ms.
+    """
+    def generate():
+        """Generate SSE data stream."""
+        global scan_progress
+
+        while True:
+            # Send current progress
+            progress_data = json.dumps(scan_progress)
+            yield f"data: {progress_data}\n\n"
+
+            # Check if completed or error
+            if scan_progress.get('completed'):
+                break
+
+            # Wait 250ms before next update
+            time.sleep(0.25)
+
+    return Response(generate(), mimetype='text/event-stream')
 
 
 @app.route('/save', methods=['POST'])
@@ -418,6 +535,25 @@ def export_history():
         }), 500
 
 
+@app.route('/scan_history')
+def scan_history():
+    """
+    Get scan history.
+    Returns JSON list of past scans.
+    """
+    try:
+        history = load_scan_history()
+        return jsonify({
+            'success': True,
+            'scans': history
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/open_file')
 def open_file():
     """
@@ -727,6 +863,30 @@ def load_export_history():
 
     try:
         with open(export_history_file, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def save_scan_history(scan_record):
+    """Save scan record to history file."""
+    history = load_scan_history()
+    history.insert(0, scan_record)  # Add to beginning (most recent first)
+
+    # Keep only last 50 scans
+    history = history[:50]
+
+    with open(scan_history_file, 'w') as f:
+        json.dump(history, f, indent=2)
+
+
+def load_scan_history():
+    """Load scan history from file."""
+    if not scan_history_file.exists():
+        return []
+
+    try:
+        with open(scan_history_file, 'r') as f:
             return json.load(f)
     except Exception:
         return []
