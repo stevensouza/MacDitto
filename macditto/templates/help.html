@@ -344,13 +344,28 @@
         // Wait for marked library to load, then render
         if (typeof marked !== 'undefined') {
             try {
-                // Parse and render markdown with default settings
+                // Parse and render markdown first
                 const htmlContent = marked.parse(readmeContent, {
                     breaks: true,
-                    gfm: true,
-                    headerIds: true
+                    gfm: true
                 });
+
+                // Insert the HTML
                 document.getElementById('markdown-output').innerHTML = htmlContent;
+
+                // Post-process: Add IDs to headings that don't have them
+                document.querySelectorAll('.markdown-content h1, .markdown-content h2, .markdown-content h3, .markdown-content h4, .markdown-content h5, .markdown-content h6').forEach(heading => {
+                    if (!heading.id) {
+                        const text = heading.textContent;
+                        const id = text
+                            .toLowerCase()
+                            .trim()
+                            .replace(/[^\w\s-]/g, '')
+                            .replace(/\s+/g, '-')
+                            .replace(/-+/g, '-');
+                        heading.id = id;
+                    }
+                });
 
                 // Handle hash on page load
                 if (window.location.hash) {
