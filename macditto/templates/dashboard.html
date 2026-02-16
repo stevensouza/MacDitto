@@ -11,36 +11,56 @@
                 <p><strong>Machine:</strong> {{ profile.machine_name }}</p>
                 <p><strong>Scanned:</strong> {{ profile.scan_date }}</p>
             </div>
+            <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: rgba(0, 217, 255, 0.1); border-left: 3px solid var(--cyan-bright); border-radius: 6px; font-size: 0.9rem;">
+                <strong style="color: var(--cyan-bright);">💡 Export Guide:</strong>
+                <span style="color: var(--text-secondary);">Click "Export" to generate install scripts. On your new Mac, run:</span>
+                <code style="margin-left: 0.5rem; font-size: 0.85rem;">chmod +x install.sh && ./install.sh</code>
+            </div>
         </div>
 
         <div class="summary">
             <h3>Summary</h3>
             <div class="summary-cards">
-                <div class="summary-card">
+                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;"
+                   onclick="expandAllCategories()">
                     <div class="card-number">{{ profile.homebrew_formulae|length }}</div>
                     <div class="card-label">Brew Packages</div>
-                </div>
-                <div class="summary-card">
+                </a>
+                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;"
+                   onclick="expandAllCategories()">
                     <div class="card-number">{{ profile.homebrew_casks|length }}</div>
                     <div class="card-label">Cask Apps</div>
-                </div>
-                <div class="summary-card">
+                </a>
+                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;"
+                   onclick="expandAllCategories()">
                     <div class="card-number">{{ profile.applications|length }}</div>
                     <div class="card-label">Applications</div>
-                </div>
-                <div class="summary-card">
+                </a>
+                <a href="#extensions-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;">
                     <div class="card-number">{{ profile.browser_extensions|length }}</div>
                     <div class="card-label">Extensions</div>
-                </div>
-                <div class="summary-card">
+                </a>
+                <a href="#preferences-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;">
                     <div class="card-number">{{ profile.system_preferences|length }}</div>
                     <div class="card-label">Preferences</div>
-                </div>
+                </a>
             </div>
         </div>
 
-        <div class="items-section">
-            <h3>Installed Items</h3>
+        <div id="items-section" class="items-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>Installed Items</h3>
+                <input type="text" id="searchBox" placeholder="🔍 Search apps..."
+                       style="padding: 0.75rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 8px; font-size: 0.95rem; width: 300px; color: var(--text-primary);"
+                       onkeyup="filterItems()">
+            </div>
+
+            <!-- Legend -->
+            <div style="background: var(--bg-tertiary); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--border-subtle); display: flex; gap: 2rem; font-size: 0.9rem; color: var(--text-secondary);">
+                <div><strong style="color: var(--text-primary);">Legend:</strong></div>
+                <div><span style="font-size: 1.2rem;">📌</span> = In Dock</div>
+                <div><span style="font-size: 1.2rem;">▶️</span> = Starts at Login</div>
+            </div>
 
             {% for category, items in items_by_category.items() %}
             <div class="category-section">
@@ -53,10 +73,11 @@
                     <table class="items-table">
                         <thead>
                             <tr>
-                                <th>Enabled</th>
+                                <th title="Include in export">Export</th>
                                 <th>Name</th>
                                 <th>Install Method</th>
-                                <th>Flags</th>
+                                <th>Install Command</th>
+                                <th title="📌 = In Dock, ▶️ = Login Item">Flags</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -73,12 +94,28 @@
                                         {{ item.install_method }}
                                     </span>
                                 </td>
+                                <td>
+                                    <code>
+                                        {% if item.install_method == 'brew' %}
+                                            brew install {{ item.brew_package or item.name }}
+                                        {% elif item.install_method == 'cask' %}
+                                            brew install --cask {{ item.brew_package or item.name }}
+                                        {% elif item.install_method == 'manual' %}
+                                            <span style="color: var(--text-tertiary);">Manual install</span>
+                                        {% else %}
+                                            <span style="color: var(--text-tertiary);">{{ item.install_method }}</span>
+                                        {% endif %}
+                                    </code>
+                                </td>
                                 <td class="item-flags">
                                     {% if item.in_dock %}
-                                        <span class="flag" title="In Dock">📌</span>
+                                        <span class="flag" title="This app is in your Dock" style="cursor: help;">📌</span>
                                     {% endif %}
                                     {% if item.start_on_login %}
-                                        <span class="flag" title="Start on Login">▶️</span>
+                                        <span class="flag" title="This app starts automatically at login" style="cursor: help;">▶️</span>
+                                    {% endif %}
+                                    {% if not item.in_dock and not item.start_on_login %}
+                                        <span style="color: var(--text-tertiary);">—</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -91,12 +128,12 @@
         </div>
 
         {% if profile.browser_extensions %}
-        <div class="extensions-section">
+        <div id="extensions-section" class="extensions-section">
             <h3>Browser Extensions</h3>
             <table class="items-table">
                 <thead>
                     <tr>
-                        <th>Enabled</th>
+                        <th title="Include in export">Export</th>
                         <th>Name</th>
                         <th>Browser</th>
                         <th>Version</th>
@@ -121,7 +158,7 @@
         {% endif %}
 
         {% if profile.system_preferences %}
-        <div class="preferences-section">
+        <div id="preferences-section" class="preferences-section">
             <h3>System Preferences</h3>
             <table class="items-table">
                 <thead>
@@ -159,6 +196,45 @@
 function toggleCategory(category) {
     const element = document.getElementById('category-' + category);
     element.classList.toggle('collapsed');
+}
+
+function filterItems() {
+    const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+    const categories = document.querySelectorAll('.category-section');
+
+    categories.forEach(category => {
+        const items = category.querySelectorAll('.items-table tbody tr');
+        let visibleCount = 0;
+
+        items.forEach(item => {
+            const itemName = item.querySelector('.item-name').textContent.toLowerCase();
+            if (itemName.includes(searchTerm)) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // Hide category if no visible items
+        if (visibleCount === 0) {
+            category.style.display = 'none';
+        } else {
+            category.style.display = '';
+            // Auto-expand category when searching
+            if (searchTerm) {
+                const categoryItems = category.querySelector('.category-items');
+                categoryItems.classList.remove('collapsed');
+            }
+        }
+    });
+}
+
+function expandAllCategories() {
+    const categoryItems = document.querySelectorAll('.category-items');
+    categoryItems.forEach(item => {
+        item.classList.remove('collapsed');
+    });
 }
 
 function toggleItem(itemType, index, enabled) {

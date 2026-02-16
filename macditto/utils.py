@@ -274,3 +274,151 @@ def get_timestamp() -> str:
     """
     from datetime import datetime
     return datetime.now().isoformat(timespec='seconds')
+
+
+def get_brew_cask_name(app_name: str) -> Optional[str]:
+    """
+    Get the Homebrew cask name for an application.
+
+    This function maps common application names to their brew cask equivalents.
+    Even if an app was manually installed, we suggest the brew cask for
+    future installations.
+
+    Args:
+        app_name: Application name (without .app extension)
+
+    Returns:
+        Brew cask name if available, None otherwise
+
+    Examples:
+        >>> get_brew_cask_name("Brave Browser")
+        'brave-browser'
+        >>> get_brew_cask_name("Google Chrome")
+        'google-chrome'
+    """
+    # Normalize app name for matching
+    name_lower = app_name.lower().strip()
+
+    # Common mappings: app name -> brew cask name
+    APP_TO_CASK_MAP = {
+        # Browsers
+        'brave browser': 'brave-browser',
+        'brave': 'brave-browser',
+        'google chrome': 'google-chrome',
+        'chrome': 'google-chrome',
+        'mozilla firefox': 'firefox',
+        'firefox': 'firefox',
+        'microsoft edge': 'microsoft-edge',
+        'edge': 'microsoft-edge',
+        'opera': 'opera',
+        'duckduckgo': 'duckduckgo',
+        'arc': 'arc',
+        'vivaldi': 'vivaldi',
+        'safari technology preview': 'safari-technology-preview',
+
+        # VPNs / Security
+        'surfshark': 'surfshark',
+        'nordvpn': 'nordvpn',
+        'expressvpn': 'expressvpn',
+        'protonvpn': 'protonvpn',
+        '1password': '1password',
+        '1password 7': '1password7',
+        'bitwarden': 'bitwarden',
+        'malwarebytes': 'malwarebytes',
+        'little snitch': 'little-snitch',
+
+        # Development
+        'visual studio code': 'visual-studio-code',
+        'vscode': 'visual-studio-code',
+        'intellij idea': 'intellij-idea',
+        'intellij idea community edition': 'intellij-idea-ce',
+        'intellij idea ultimate': 'intellij-idea',
+        'pycharm': 'pycharm',
+        'pycharm professional': 'pycharm',
+        'pycharm community edition': 'pycharm-ce',
+        'sublime text': 'sublime-text',
+        'atom': 'atom',
+        'docker desktop': 'docker',
+        'docker': 'docker',
+        'iterm2': 'iterm2',
+        'iterm': 'iterm2',
+        'postman': 'postman',
+        'github desktop': 'github',
+        'sublime merge': 'sublime-merge',
+        'android studio': 'android-studio',
+        'xcode': None,  # Apple app, not in brew casks
+
+        # Communication
+        'signal': 'signal',
+        'zoom': 'zoom',
+        'zoom.us': 'zoom',
+        'microsoft teams': 'microsoft-teams',
+        'teams': 'microsoft-teams',
+        'discord': 'discord',
+        'slack': 'slack',
+        'telegram': 'telegram',
+        'telegram desktop': 'telegram-desktop',
+        'whatsapp': 'whatsapp',
+        'skype': 'skype',
+
+        # Media
+        'vlc': 'vlc',
+        'spotify': 'spotify',
+        'iina': 'iina',
+        'obs': 'obs',
+        'obs studio': 'obs',
+        'handbrake': 'handbrake',
+        'plex': 'plex',
+        'davinci resolve': 'davinci-resolve',
+        'audacity': 'audacity',
+
+        # Productivity
+        'notion': 'notion',
+        'obsidian': 'obsidian',
+        'evernote': 'evernote',
+        'bear': 'bear',
+        'alfred': 'alfred',
+        'raycast': 'raycast',
+        'rectangle': 'rectangle',
+        'magnet': 'magnet',
+        'bettertouchtool': 'bettertouchtool',
+        'bartender': 'bartender',
+        'cleanmymac': 'cleanmymac',
+        'cleanmymac x': 'cleanmymac',
+        'appcleaner': 'appcleaner',
+        'the unarchiver': 'the-unarchiver',
+        'keka': 'keka',
+
+        # AI/ML
+        'claude for desktop': None,  # Not yet available via brew
+        'chatgpt': 'chatgpt',
+    }
+
+    # Direct match
+    if name_lower in APP_TO_CASK_MAP:
+        return APP_TO_CASK_MAP[name_lower]
+
+    # Try partial matches (e.g., "Brave Browser Beta" -> "brave-browser")
+    for app_key, cask_name in APP_TO_CASK_MAP.items():
+        if app_key in name_lower or name_lower in app_key:
+            return cask_name
+
+    # If no mapping found, return None
+    return None
+
+
+def check_brew_cask_exists(cask_name: str) -> bool:
+    """
+    Check if a Homebrew cask actually exists in the repository.
+
+    Args:
+        cask_name: Name of the cask to check
+
+    Returns:
+        True if cask exists, False otherwise
+    """
+    if not cask_name:
+        return False
+
+    success, stdout, _ = run_command(['brew', 'info', '--cask', cask_name], timeout=10)
+    return success and cask_name in stdout.lower()

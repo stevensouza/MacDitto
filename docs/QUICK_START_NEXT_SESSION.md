@@ -1,6 +1,6 @@
 # Session State: MacDitto
 
-**Last Updated:** 2026-02-15 17:00
+**Last Updated:** 2026-02-15 18:30
 
 ## Current Task
 Implementing Flask Web GUI for MacDitto
@@ -16,7 +16,7 @@ Implementing Flask Web GUI for MacDitto
 - ✅ Real scan tested successfully (153KB scan_results.json)
 
 **In Progress:**
-- Flask Web GUI implementation
+- Flask Web GUI refinement and feature enhancements
 
 **Next Steps:**
 1. Implement Flask Web GUI with:
@@ -37,10 +37,18 @@ Implementing Flask Web GUI for MacDitto
 - Comprehensive scanning (brew, apps, dock, login items, shell configs, git, browser extensions, macOS prefs)
 - 8 categories: Development, Productivity, Media, Communication, Browsers, Security/Privacy, AI/ML, Utilities
 
+## Recent Enhancements
+- ✅ Developer mode extensions detection (already implemented in scanner.py)
+- ✅ Export history feature with persistent tracking
+- ✅ Clickable file links in export history
+- ✅ Reduced table spacing (0.75rem → 0.5rem)
+- ✅ Auto-show export history modal after export completes
+
 ## Files Modified This Session
-- `macditto/utils.py` - Fixed category detection keywords
-- `tests/test_scanner.py` - Fixed mock setup issues
-- Created: `requirements.txt`, `scan.py`
+- `macditto/app.py` - Added export history tracking and routes
+- `macditto/static/app.js` - Added export history modal and display logic
+- `macditto/static/style.css` - Reduced table cell padding
+- `macditto/templates/base.html` - Added Export History modal and nav link
 
 ## Project Location
 `/Users/stevesouza/my/data/gitrepo/MacDitto/`

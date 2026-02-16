@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}JSON Profile - MacDitto{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2>Profile JSON Data</h2>
+                <p style="color: #8e8e93; margin-top: 0.5rem;">
+                    Machine: {{ profile.machine_name }} |
+                    Scan Date: {{ profile.scan_date }}
+                </p>
+            </div>
+            <div>
+                <button onclick="copyJSON()" style="padding: 0.5rem 1rem; background: #007AFF; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    📋 Copy JSON
+                </button>
+                <button onclick="downloadJSON()" style="padding: 0.5rem 1rem; background: #34C759; color: white; border: none; border-radius: 6px; cursor: pointer; margin-left: 0.5rem;">
+                    💾 Download
+                </button>
+                <a href="/" style="padding: 0.5rem 1rem; background: #8e8e93; color: white; border: none; border-radius: 6px; text-decoration: none; margin-left: 0.5rem; display: inline-block;">
+                    ← Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div style="background: #1d1d1f; color: #f5f5f7; padding: 1.5rem; border-radius: 8px; overflow-x: auto;">
+        <pre id="json-content" style="margin: 0; font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 0.9rem; line-height: 1.6;">{{ json_content }}</pre>
+    </div>
+
+    <div style="margin-top: 1rem; padding: 1rem; background: #f5f5f7; border-radius: 8px;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">About this JSON</h3>
+        <p style="color: #636366; font-size: 0.9rem; margin-bottom: 0.5rem;">
+            This is the raw JSON data representing your Mac configuration scan.
+        </p>
+        <ul style="color: #636366; font-size: 0.9rem; margin-left: 1.5rem;">
+            <li>Save this file to track your environment over time</li>
+            <li>Load it later to see past configurations</li>
+            <li>Compare different versions to see what changed</li>
+            <li>Share with team members for environment standardization</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+function copyJSON() {
+    const jsonText = document.getElementById('json-content').textContent;
+    navigator.clipboard.writeText(jsonText).then(() => {
+        showToast('JSON copied to clipboard!', 'success');
+    }).catch(err => {
+        showToast('Failed to copy JSON', 'error');
+        console.error('Copy failed:', err);
+    });
+}
+
+function downloadJSON() {
+    const jsonText = document.getElementById('json-content').textContent;
+    const blob = new Blob([jsonText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'macditto_profile_' + new Date().toISOString().split('T')[0] + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('JSON downloaded!', 'success');
+}
+</script>
+{% endblock %}

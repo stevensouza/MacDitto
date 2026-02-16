@@ -13,7 +13,8 @@ from .models import (
 )
 from .utils import (
     get_home_directory, run_command, detect_category, is_standard_macos_app,
-    get_machine_name, file_exists, read_file, get_timestamp
+    get_machine_name, file_exists, read_file, get_timestamp,
+    get_brew_cask_name, check_brew_cask_exists
 )
 
 
@@ -142,14 +143,32 @@ class Scanner:
                         if bundle_id and is_standard_macos_app(app_name, bundle_id):
                             continue
 
+                        # Check if app has a brew cask equivalent
+                        brew_cask = get_brew_cask_name(app_name)
+                        install_method = "manual"
+                        brew_package = None
+
+                        if brew_cask:
+                            # Verify the cask actually exists
+                            if check_brew_cask_exists(brew_cask):
+                                install_method = "cask"
+                                brew_package = brew_cask
+
+                        metadata = {
+                            "path": os.path.join(app_dir, item)
+                        }
+                        if bundle_id:
+                            metadata["bundle_id"] = bundle_id
+                        if brew_cask and not brew_package:
+                            # Cask mapping exists but couldn't verify - note it
+                            metadata["suggested_cask"] = brew_cask
+
                         applications.append(Item(
                             name=app_name,
-                            install_method="manual",  # Will be updated if found in App Store
+                            install_method=install_method,
+                            brew_package=brew_package,
                             category=detect_category(app_name),
-                            metadata={
-                                "path": os.path.join(app_dir, item),
-                                "bundle_id": bundle_id
-                            } if bundle_id else {"path": os.path.join(app_dir, item)}
+                            metadata=metadata
                         ))
             except PermissionError:
                 # Skip directories we can't read
@@ -333,45 +352,91 @@ class Scanner:
         """
         extensions = []
 
-        if not os.path.exists(extensions_path):
-            return extensions
-
-        try:
-            for extension_id in os.listdir(extensions_path):
-                ext_path = os.path.join(extensions_path, extension_id)
-                if not os.path.isdir(ext_path):
-                    continue
-
-                # Find latest version directory
-                try:
-                    versions = os.listdir(ext_path)
-                    if not versions:
+        # First, scan standard extensions folder
+        if os.path.exists(extensions_path):
+            try:
+                for extension_id in os.listdir(extensions_path):
+                    ext_path = os.path.join(extensions_path, extension_id)
+                    if not os.path.isdir(ext_path):
                         continue
 
-                    # Get the latest version (alphabetically last)
-                    latest_version = sorted(versions)[-1]
-                    manifest_path = os.path.join(ext_path, latest_version, 'manifest.json')
+                    # Find latest version directory
+                    try:
+                        versions = os.listdir(ext_path)
+                        if not versions:
+                            continue
 
-                    if os.path.exists(manifest_path):
-                        with open(manifest_path, 'r', encoding='utf-8') as f:
-                            manifest = json.load(f)
-                            name = manifest.get('name', extension_id)
-                            version = manifest.get('version', latest_version)
+                        # Get the latest version (alphabetically last)
+                        latest_version = sorted(versions)[-1]
+                        manifest_path = os.path.join(ext_path, latest_version, 'manifest.json')
 
-                            # Chrome Web Store URL
-                            store_url = f"https://chrome.google.com/webstore/detail/{extension_id}"
+                        if os.path.exists(manifest_path):
+                            with open(manifest_path, 'r', encoding='utf-8') as f:
+                                manifest = json.load(f)
+                                name = manifest.get('name', extension_id)
+                                version = manifest.get('version', latest_version)
+
+                                # Chrome Web Store URL
+                                store_url = f"https://chrome.google.com/webstore/detail/{extension_id}"
+
+                                extensions.append(BrowserExtension(
+                                    name=name,
+                                    browser=browser_name,
+                                    extension_id=extension_id,
+                                    version=version,
+                                    store_url=store_url
+                                ))
+                    except Exception:
+                        continue
+            except PermissionError:
+                pass
+
+        # Now scan for developer mode extensions from Preferences file
+        profile_dir = os.path.dirname(extensions_path)
+        prefs_path = os.path.join(profile_dir, 'Preferences')
+
+        if os.path.exists(prefs_path):
+            try:
+                with open(prefs_path, 'r', encoding='utf-8') as f:
+                    prefs = json.load(f)
+                    ext_settings = prefs.get('extensions', {}).get('settings', {})
+
+                    for ext_id, ext_data in ext_settings.items():
+                        # Check if this is a developer mode extension
+                        # Location 4 = unpacked extension (developer mode)
+                        location = ext_data.get('location', 0)
+                        from_webstore = ext_data.get('from_webstore', True)
+
+                        if location == 4 or not from_webstore:
+                            # This is a developer extension
+                            path = ext_data.get('path', '')
+                            manifest_data = ext_data.get('manifest', {})
+
+                            # Try to read manifest from the actual path
+                            if path and os.path.exists(path):
+                                manifest_path = os.path.join(path, 'manifest.json')
+                                if os.path.exists(manifest_path):
+                                    try:
+                                        with open(manifest_path, 'r', encoding='utf-8') as mf:
+                                            manifest_data = json.load(mf)
+                                    except Exception:
+                                        pass
+
+                            name = manifest_data.get('name', ext_id)
+                            version = manifest_data.get('version', 'dev')
+
+                            # Mark as developer extension
+                            store_url = f"Developer Extension (unpacked from: {path})" if path else "Developer Extension"
 
                             extensions.append(BrowserExtension(
-                                name=name,
+                                name=f"{name} [DEV]",
                                 browser=browser_name,
-                                extension_id=extension_id,
+                                extension_id=ext_id,
                                 version=version,
                                 store_url=store_url
                             ))
-                except Exception:
-                    continue
-        except PermissionError:
-            pass
+            except Exception:
+                pass
 
         return extensions
 
