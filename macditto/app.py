@@ -21,10 +21,21 @@ app.config['SECRET_KEY'] = 'macditto-dev-secret-key-change-in-production'
 current_profile = None
 profiles_dir = Path(__file__).parent.parent / 'profiles'
 output_dir = Path(__file__).parent.parent / 'output'
+export_history_file = output_dir / 'export_history.json'
 
 # Ensure directories exist
 profiles_dir.mkdir(exist_ok=True)
 output_dir.mkdir(exist_ok=True)
+
+
+# Disable caching for all responses (especially static files)
+@app.after_request
+def add_no_cache_headers(response):
+    """Add headers to disable browser caching during development."""
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 @app.route('/')
@@ -117,8 +128,9 @@ def save_profile():
 
         return jsonify({
             'success': True,
-            'message': f'Profile saved as {filename}',
-            'filename': filename
+            'message': f'Profile saved successfully!',
+            'filename': filename,
+            'filepath': str(filepath.absolute())
         })
     except Exception as e:
         return jsonify({
@@ -291,11 +303,165 @@ def export():
         config_path = export_dir / 'macditto_config.json'
         current_profile.save(str(config_path))
 
+        # Save to export history
+        export_record = {
+            'timestamp': timestamp,
+            'export_date': datetime.now().isoformat(),
+            'machine_name': current_profile.machine_name,
+            'export_dir': str(export_dir.absolute()),
+            'export_dirname': f'export_{timestamp}',
+            'files': {
+                'brewfile': str(brewfile_path.absolute()),
+                'install_script': str(install_script_path.absolute()),
+                'manual_steps': str(manual_steps_path.absolute()),
+                'config': str(config_path.absolute())
+            }
+        }
+        save_export_history(export_record)
+
         return jsonify({
             'success': True,
-            'message': f'Export generated in output/export_{timestamp}/',
-            'export_dir': str(export_dir)
+            'message': f'Export completed successfully!',
+            'export_dir': str(export_dir.absolute()),
+            'export_dirname': f'export_{timestamp}',
+            'files': export_record['files']
         })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/help')
+def help_page():
+    """
+    Display help/user manual page.
+    Renders README.md content as HTML.
+    """
+    try:
+        # Read README.md file
+        readme_path = Path(__file__).parent.parent / 'README.md'
+
+        if readme_path.exists():
+            with open(readme_path, 'r') as f:
+                readme_content = f.read()
+        else:
+            readme_content = "# Help documentation not found\n\nPlease ensure README.md exists in the project root."
+
+        return render_template('help.html', readme_content=readme_content)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/view_json')
+def view_json():
+    """
+    View current profile as formatted JSON.
+    """
+    global current_profile
+
+    if current_profile is None:
+        return jsonify({
+            'success': False,
+            'error': 'No profile loaded. Please run a scan first.'
+        }), 400
+
+    try:
+        # Convert profile to dict and format as JSON
+        profile_dict = current_profile.to_dict()
+        json_str = json.dumps(profile_dict, indent=2)
+
+        return render_template('json_viewer.html', json_content=json_str, profile=current_profile)
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/profile/json')
+def api_profile_json():
+    """
+    API endpoint to get current profile as JSON.
+    """
+    global current_profile
+
+    if current_profile is None:
+        return jsonify({
+            'success': False,
+            'error': 'No profile loaded'
+        }), 400
+
+    return jsonify(current_profile.to_dict())
+
+
+@app.route('/export_history')
+def export_history():
+    """
+    Get export history.
+    Returns JSON list of past exports.
+    """
+    try:
+        history = load_export_history()
+        return jsonify({
+            'success': True,
+            'exports': history
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/open_file')
+def open_file():
+    """
+    Open a file in the default application (via browser).
+    For local files, serves them for viewing with proper MIME types.
+    """
+    filepath = request.args.get('path', '')
+
+    if not filepath:
+        return jsonify({
+            'success': False,
+            'error': 'No file path provided'
+        }), 400
+
+    try:
+        file_path = Path(filepath)
+
+        if not file_path.exists():
+            return jsonify({
+                'success': False,
+                'error': 'File not found'
+            }), 404
+
+        # Determine MIME type based on file extension
+        extension = file_path.suffix.lower()
+        mime_type = None
+
+        if extension == '.json':
+            mime_type = 'application/json'
+        elif extension == '.md':
+            mime_type = 'text/plain; charset=utf-8'
+        elif extension == '.sh':
+            mime_type = 'text/plain; charset=utf-8'
+        elif file_path.name == 'Brewfile':
+            mime_type = 'text/plain; charset=utf-8'
+        else:
+            mime_type = 'text/plain; charset=utf-8'
+
+        # Serve the file for viewing (not downloading)
+        return send_file(
+            str(file_path),
+            mimetype=mime_type,
+            as_attachment=False
+        )
     except Exception as e:
         return jsonify({
             'success': False,
@@ -542,5 +708,31 @@ Machine: {profile.machine_name}
         f.write(md)
 
 
+def save_export_history(export_record):
+    """Save export record to history file."""
+    history = load_export_history()
+    history.insert(0, export_record)  # Add to beginning (most recent first)
+
+    # Keep only last 50 exports
+    history = history[:50]
+
+    with open(export_history_file, 'w') as f:
+        json.dump(history, f, indent=2)
+
+
+def load_export_history():
+    """Load export history from file."""
+    if not export_history_file.exists():
+        return []
+
+    try:
+        with open(export_history_file, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # Use port 5001 by default (5000 is often used by macOS AirPlay Receiver)
+    port = int(os.environ.get('FLASK_RUN_PORT', 5001))
+    app.run(debug=True, port=port)

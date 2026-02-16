@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MacDitto - Help & User Manual</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-elevated: #1f1f1f;
+            --cyan-bright: #00D9FF;
+            --cyan-mid: #00B8D4;
+            --amber-bright: #FFB84D;
+            --text-primary: #FFFFFF;
+            --text-secondary: #A0A0A0;
+            --text-tertiary: #666666;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --success: #00FF87;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--bg-primary);
+        }
+
+        /* Scanline effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.5;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--cyan-bright) 0%, var(--amber-bright) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--cyan-bright);
+            background: rgba(0, 217, 255, 0.1);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 1.5rem auto;
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .markdown-content {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: var(--text-primary);
+        }
+
+        .markdown-content h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 2rem 0 0.75rem 0;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-subtle);
+            padding-bottom: 0.5rem;
+        }
+
+        .markdown-content h1:first-child {
+            margin-top: 0;
+        }
+
+        .markdown-content h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.5rem 0;
+            color: var(--cyan-bright);
+        }
+
+        .markdown-content h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 1rem 0 0.5rem 0;
+            color: var(--text-primary);
+        }
+
+        .markdown-content p {
+            margin: 0.5rem 0;
+            color: var(--text-secondary);
+        }
+
+        .markdown-content hr {
+            margin: 1.5rem 0;
+            border: none;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .markdown-content code {
+            background: #000000;
+            color: var(--success);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .markdown-content pre {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.75rem 0;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .markdown-content pre code {
+            background: none;
+            color: var(--success);
+            padding: 0;
+            border: none;
+        }
+
+        .markdown-content a {
+            color: var(--cyan-bright);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .markdown-content a:hover {
+            color: var(--amber-bright);
+            text-decoration: underline;
+        }
+
+        .markdown-content ul,
+        .markdown-content ol {
+            margin: 0.5rem 0 0.5rem 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .markdown-content li {
+            margin: 0.25rem 0;
+        }
+
+        .markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1rem 0;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .markdown-content th,
+        .markdown-content td {
+            border: 1px solid var(--border-subtle);
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        .markdown-content th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .markdown-content td {
+            color: var(--text-secondary);
+        }
+
+        .markdown-content blockquote {
+            border-left: 3px solid var(--cyan-bright);
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: var(--text-tertiary);
+            font-style: italic;
+        }
+
+        .markdown-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .markdown-content em {
+            color: var(--amber-bright);
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: linear-gradient(135deg, var(--cyan-bright), var(--cyan-mid));
+            color: var(--bg-primary);
+            padding: 0.75rem 1.5rem;
+            border-radius: 24px;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 4px 20px rgba(0, 217, 255, 0.3);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 217, 255, 0.5);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--cyan-mid);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+    <!-- Markdown rendering library -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>MacDitto - Help & User Manual</h1>
+            <div class="nav-links">
+                <a href="/">← Back to Dashboard</a>
+                <a href="#quick-start">Quick Start</a>
+                <a href="#examples">Examples</a>
+                <a href="#troubleshooting">Troubleshooting</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="markdown-output" class="markdown-content"></div>
+    </div>
+
+    <a href="#top" class="back-to-top" onclick="scrollToTop(event)">↑ Top</a>
+
+    <script>
+        function scrollToTop(e) {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // Get the README content passed from Flask
+        const readmeContent = {{ readme_content|tojson }};
+
+        // Wait for marked library to load, then render
+        if (typeof marked !== 'undefined') {
+            try {
+                // Parse and render markdown with default settings
+                const htmlContent = marked.parse(readmeContent, {
+                    breaks: true,
+                    gfm: true,
+                    headerIds: true
+                });
+                document.getElementById('markdown-output').innerHTML = htmlContent;
+
+                // Handle hash on page load
+                if (window.location.hash) {
+                    setTimeout(() => {
+                        const element = document.getElementById(window.location.hash.substring(1));
+                        if (element) {
+                            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }, 100);
+                }
+            } catch (error) {
+                console.error('Error rendering markdown:', error);
+                document.getElementById('markdown-output').innerHTML = '<pre>' + readmeContent + '</pre>';
+            }
+        } else {
+            // Fallback if marked doesn't load
+            console.error('Marked.js library not loaded');
+            document.getElementById('markdown-output').innerHTML = '<pre>' + readmeContent + '</pre>';
+        }
+
+        // Smooth scroll for anchor links
+        document.addEventListener('click', function(e) {
+            let target = e.target;
+
+            // Find the anchor element
+            while (target && target.tagName !== 'A') {
+                target = target.parentElement;
+            }
+
+            if (target && target.tagName === 'A') {
+                const href = target.getAttribute('href');
+                if (href && href.startsWith('#')) {
+                    e.preventDefault();
+                    const targetId = href.substring(1);
+                    const element = document.getElementById(targetId);
+
+                    if (element) {
+                        element.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                        // Update URL
+                        history.pushState(null, null, href);
+                    }
+                }
+            }
+        });
+
+        // Handle hash on page load
+        window.addEventListener('load', function() {
+            if (window.location.hash) {
+                setTimeout(() => {
+                    const element = document.getElementById(window.location.hash.substring(1));
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
