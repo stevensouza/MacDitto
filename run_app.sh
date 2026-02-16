@@ -16,4 +16,4 @@ echo "Press Ctrl+C to stop"
 echo ""
 
 # Run Flask app
-python -m macditto.app
+python3 -m macditto.app
