@@ -617,6 +617,84 @@ code {
     transform: scale(1.2);
 }
 
+/* Setup Notes Section */
+.setup-notes-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.setup-notes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s;
+}
+
+.setup-notes-header:hover {
+    background: var(--bg-elevated);
+}
+
+.setup-notes-header h3 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+}
+
+.setup-notes-content {
+    padding: 1.5rem;
+    max-height: 600px;
+    transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s;
+    overflow: hidden;
+}
+
+.setup-notes-content.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.setup-notes-textarea {
+    width: 100%;
+    min-height: 200px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 1rem;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    resize: vertical;
+    transition: all 0.3s;
+}
+
+.setup-notes-textarea:focus {
+    outline: none;
+    border-color: var(--cyan-bright);
+    box-shadow: 0 0 0 3px var(--cyan-glow);
+}
+
+.setup-notes-textarea::placeholder {
+    color: var(--text-tertiary);
+}
+
+/* Item Description Column */
+.item-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    max-width: 300px;
+}
+
 /* Extensions & Preferences Sections */
 .extensions-section,
 .preferences-section {

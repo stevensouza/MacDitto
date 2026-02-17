@@ -351,6 +351,54 @@ def toggle_item():
         }), 500
 
 
+@app.route('/save_notes', methods=['POST'])
+def save_notes():
+    """
+    Save setup notes to the current profile.
+    Accepts JSON: {"notes": "markdown text..."}
+    """
+    global current_profile
+
+    if current_profile is None:
+        return jsonify({
+            'success': False,
+            'error': 'No profile loaded'
+        }), 400
+
+    try:
+        data = request.get_json()
+        current_profile.setup_notes = data.get('notes', '')
+
+        return jsonify({
+            'success': True,
+            'message': 'Notes saved successfully'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/get_notes')
+def get_notes():
+    """
+    Get current setup notes.
+    """
+    global current_profile
+
+    if current_profile is None:
+        return jsonify({
+            'success': True,
+            'notes': ''
+        })
+
+    return jsonify({
+        'success': True,
+        'notes': current_profile.setup_notes
+    })
+
+
 @app.route('/diff/<profile1>/<profile2>')
 def diff_profiles(profile1, profile2):
     """
@@ -416,6 +464,14 @@ def export():
         manual_steps_path = export_dir / 'MANUAL_STEPS.md'
         generate_manual_steps(current_profile, manual_steps_path)
 
+        # Generate SETUP_NOTES.md
+        setup_notes_path = export_dir / 'SETUP_NOTES.md'
+        generate_setup_notes(current_profile, setup_notes_path)
+
+        # Generate SOFTWARE_CATALOG.md
+        software_catalog_path = export_dir / 'SOFTWARE_CATALOG.md'
+        generate_software_catalog(current_profile, software_catalog_path)
+
         # Save profile config
         config_path = export_dir / 'macditto_config.json'
         current_profile.save(str(config_path))
@@ -431,6 +487,8 @@ def export():
                 'brewfile': str(brewfile_path.absolute()),
                 'install_script': str(install_script_path.absolute()),
                 'manual_steps': str(manual_steps_path.absolute()),
+                'setup_notes': str(setup_notes_path.absolute()),
+                'software_catalog': str(software_catalog_path.absolute()),
                 'config': str(config_path.absolute())
             }
         }
@@ -839,6 +897,96 @@ Machine: {profile.machine_name}
 
 4. **Verify Installation**: Run MacDitto scan on new machine to verify setup
 """
+
+    with open(filepath, 'w') as f:
+        f.write(md)
+
+
+def generate_setup_notes(profile, filepath):
+    """Generate SETUP_NOTES.md from the profile's setup notes."""
+    md = f"""# Setup Notes
+
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+Machine: {profile.machine_name}
+
+---
+
+"""
+    if profile.setup_notes:
+        md += profile.setup_notes + "\n"
+    else:
+        md += "_No setup notes have been added yet. Use the MacDitto web interface to add notes about your setup._\n"
+
+    with open(filepath, 'w') as f:
+        f.write(md)
+
+
+def generate_software_catalog(profile, filepath):
+    """Generate SOFTWARE_CATALOG.md with organized software descriptions."""
+    md = f"""# Software Catalog
+
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+Machine: {profile.machine_name}
+
+"""
+
+    # Homebrew Formulae
+    if profile.homebrew_formulae:
+        md += "## Homebrew Formulae\n\n"
+        by_category = {}
+        for item in profile.homebrew_formulae:
+            if item.enabled:
+                cat = item.category or 'Other'
+                by_category.setdefault(cat, []).append(item)
+
+        for category in sorted(by_category.keys()):
+            md += f"### {category}\n\n"
+            for item in sorted(by_category[category], key=lambda x: x.name):
+                desc = item.metadata.get('description', '')
+                if desc:
+                    md += f"- **{item.name}** - {desc}\n"
+                else:
+                    md += f"- **{item.name}**\n"
+            md += "\n"
+
+    # Homebrew Casks
+    if profile.homebrew_casks:
+        md += "## Homebrew Casks\n\n"
+        by_category = {}
+        for item in profile.homebrew_casks:
+            if item.enabled:
+                cat = item.category or 'Other'
+                by_category.setdefault(cat, []).append(item)
+
+        for category in sorted(by_category.keys()):
+            md += f"### {category}\n\n"
+            for item in sorted(by_category[category], key=lambda x: x.name):
+                desc = item.metadata.get('description', '')
+                if desc:
+                    md += f"- **{item.name}** - {desc}\n"
+                else:
+                    md += f"- **{item.name}**\n"
+            md += "\n"
+
+    # Manual Installations
+    manual_apps = [item for item in profile.applications if item.enabled]
+    if manual_apps:
+        md += "## Applications\n\n"
+        by_category = {}
+        for item in manual_apps:
+            cat = item.category or 'Other'
+            by_category.setdefault(cat, []).append(item)
+
+        for category in sorted(by_category.keys()):
+            md += f"### {category}\n\n"
+            for item in sorted(by_category[category], key=lambda x: x.name):
+                desc = item.metadata.get('description', '')
+                method = item.install_method
+                if desc:
+                    md += f"- **{item.name}** ({method}) - {desc}\n"
+                else:
+                    md += f"- **{item.name}** ({method})\n"
+            md += "\n"
 
     with open(filepath, 'w') as f:
         f.write(md)

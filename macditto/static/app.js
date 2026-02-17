@@ -247,6 +247,8 @@ function createFileButton(name, path) {
         'install_script': '⚡',
         'brewfile': '🍺',
         'manual_steps': '📋',
+        'setup_notes': '📝',
+        'software_catalog': '📚',
         'config': '⚙️'
     };
 
@@ -254,6 +256,8 @@ function createFileButton(name, path) {
         'brewfile': 'Brew',
         'install_script': 'install.sh',
         'manual_steps': 'Manual',
+        'setup_notes': 'Notes',
+        'software_catalog': 'Catalog',
         'config': 'Config'
     };
 
@@ -261,6 +265,8 @@ function createFileButton(name, path) {
         'brewfile': 'Brewfile',
         'install_script': 'install.sh',
         'manual_steps': 'MANUAL_STEPS.md',
+        'setup_notes': 'SETUP_NOTES.md',
+        'software_catalog': 'SOFTWARE_CATALOG.md',
         'config': 'macditto_config.json'
     };
 

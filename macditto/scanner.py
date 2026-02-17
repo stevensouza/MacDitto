@@ -14,7 +14,7 @@ from .models import (
 from .utils import (
     get_home_directory, run_command, detect_category, is_standard_macos_app,
     get_machine_name, file_exists, read_file, get_timestamp,
-    get_brew_cask_name, check_brew_cask_exists
+    get_brew_cask_name, check_brew_cask_exists, get_manual_app_description
 )
 
 
@@ -617,6 +617,66 @@ class Scanner:
             command=command
         )
 
+    def fetch_brew_descriptions(self, packages: List[str]) -> Dict[str, str]:
+        """
+        Fetch descriptions for Homebrew formulae using brew info --json=v2.
+
+        Args:
+            packages: List of formula package names
+
+        Returns:
+            Dictionary mapping package name to description
+        """
+        descriptions = {}
+        if not packages:
+            return descriptions
+
+        try:
+            success, stdout, _ = run_command(
+                ['brew', 'info', '--json=v2'] + packages, timeout=60
+            )
+            if success:
+                data = json.loads(stdout)
+                for formula in data.get('formulae', []):
+                    name = formula.get('name', '')
+                    desc = formula.get('desc', '')
+                    if name and desc:
+                        descriptions[name] = desc
+        except Exception:
+            pass
+
+        return descriptions
+
+    def fetch_cask_descriptions(self, casks: List[str]) -> Dict[str, str]:
+        """
+        Fetch descriptions for Homebrew casks using brew info --json=v2 --cask.
+
+        Args:
+            casks: List of cask package names
+
+        Returns:
+            Dictionary mapping cask name to description
+        """
+        descriptions = {}
+        if not casks:
+            return descriptions
+
+        try:
+            success, stdout, _ = run_command(
+                ['brew', 'info', '--json=v2', '--cask'] + casks, timeout=60
+            )
+            if success:
+                data = json.loads(stdout)
+                for cask in data.get('casks', []):
+                    token = cask.get('token', '')
+                    desc = cask.get('desc', '')
+                    if token and desc:
+                        descriptions[token] = desc
+        except Exception:
+            pass
+
+        return descriptions
+
     def scan_all(self) -> ScanProfile:
         """
         Run all scans and return unified ScanProfile.
@@ -642,7 +702,7 @@ class Scanner:
 
         # Initialize item counts dict
         item_counts = {}
-        total_steps = 10
+        total_steps = 11
 
         # Step 1: Scan Homebrew
         if self.progress_callback:
@@ -735,9 +795,43 @@ class Scanner:
         item_counts['system_preferences'] = len(profile.system_preferences)
         print(f"  Found {len(profile.system_preferences)} system preferences")
 
-        # Step 10: Finalization
+        # Step 10: Fetch software descriptions
         if self.progress_callback:
-            self.progress_callback("Finalizing scan results", 10, total_steps, item_counts)
+            self.progress_callback("Fetching software descriptions", 10, total_steps, item_counts)
+        print("Fetching software descriptions...")
+
+        # Fetch brew formula descriptions
+        formula_names = [item.brew_package or item.name for item in profile.homebrew_formulae]
+        formula_descs = self.fetch_brew_descriptions(formula_names)
+        for item in profile.homebrew_formulae:
+            key = item.brew_package or item.name
+            if key in formula_descs and not item.metadata.get('description'):
+                item.metadata['description'] = formula_descs[key]
+
+        # Fetch cask descriptions
+        cask_names = [item.brew_package or item.name for item in profile.homebrew_casks]
+        cask_descs = self.fetch_cask_descriptions(cask_names)
+        for item in profile.homebrew_casks:
+            key = item.brew_package or item.name
+            if key in cask_descs and not item.metadata.get('description'):
+                item.metadata['description'] = cask_descs[key]
+
+        # Add descriptions for manual applications
+        for item in profile.applications:
+            if not item.metadata.get('description'):
+                desc = get_manual_app_description(item.name)
+                if desc:
+                    item.metadata['description'] = desc
+
+        desc_count = sum(
+            1 for items in [profile.homebrew_formulae, profile.homebrew_casks, profile.applications]
+            for item in items if item.metadata.get('description')
+        )
+        print(f"  Fetched {desc_count} descriptions")
+
+        # Step 11: Finalization
+        if self.progress_callback:
+            self.progress_callback("Finalizing scan results", 11, total_steps, item_counts)
 
         print("\nScan complete!")
         return profile

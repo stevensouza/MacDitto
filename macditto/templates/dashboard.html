@@ -47,6 +47,25 @@
             </div>
         </div>
 
+        <div class="setup-notes-section" style="animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.25s backwards;">
+            <div class="setup-notes-header" onclick="toggleNotesSection()">
+                <h3 style="margin-bottom: 0;">Setup Notes</h3>
+                <span class="toggle-icon" id="notesToggleIcon">▼</span>
+            </div>
+            <div id="setupNotesContent" class="setup-notes-content">
+                <textarea id="setupNotesTextarea" class="setup-notes-textarea" placeholder="Write your setup notes here... (supports markdown)
+
+Examples:
+- Login credentials hints
+- Manual configuration steps
+- Software license locations
+- Custom settings to remember">{{ profile.setup_notes }}</textarea>
+                <div style="display: flex; justify-content: flex-end; margin-top: 0.75rem;">
+                    <button onclick="saveNotes()" class="btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.85rem;">Save Notes</button>
+                </div>
+            </div>
+        </div>
+
         <div id="items-section" class="items-section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3>Installed Items</h3>
@@ -75,6 +94,7 @@
                             <tr>
                                 <th title="Include in export">Export</th>
                                 <th>Name</th>
+                                <th>Description</th>
                                 <th>Install Method</th>
                                 <th>Install Command</th>
                                 <th title="📌 = In Dock, ▶️ = Login Item">Flags</th>
@@ -89,6 +109,13 @@
                                            onchange="toggleItem('{{ item.item_type }}', {{ loop.index0 }}, this.checked)">
                                 </td>
                                 <td class="item-name">{{ item.name }}</td>
+                                <td class="item-description">
+                                    {% if item.metadata and item.metadata.description %}
+                                        {{ item.metadata.description }}
+                                    {% else %}
+                                        <span style="color: var(--text-tertiary);">—</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <span class="badge badge-{{ item.install_method }}">
                                         {{ item.install_method }}
@@ -234,6 +261,35 @@ function expandAllCategories() {
     const categoryItems = document.querySelectorAll('.category-items');
     categoryItems.forEach(item => {
         item.classList.remove('collapsed');
+    });
+}
+
+function toggleNotesSection() {
+    const content = document.getElementById('setupNotesContent');
+    content.classList.toggle('collapsed');
+}
+
+function saveNotes() {
+    const notes = document.getElementById('setupNotesTextarea').value;
+
+    fetch('/save_notes', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notes: notes })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Notes saved successfully', 'success');
+        } else {
+            showToast('Error: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showToast('Error saving notes', 'error');
+        console.error('Error:', error);
     });
 }
 

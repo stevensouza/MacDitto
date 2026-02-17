@@ -407,6 +407,125 @@ def get_brew_cask_name(app_name: str) -> Optional[str]:
     return None
 
 
+MANUAL_APP_DESCRIPTIONS = {
+    # Development
+    'IntelliJ IDEA': 'Java IDE for professional development',
+    'IntelliJ IDEA CE': 'Free Java IDE for JVM development',
+    'PyCharm': 'Python IDE for professional development',
+    'PyCharm CE': 'Free Python IDE for development',
+    'Visual Studio Code': 'Open-source code editor by Microsoft',
+    'Sublime Text': 'Sophisticated text editor for code and markup',
+    'Android Studio': 'IDE for Android app development',
+    'Xcode': 'Apple IDE for macOS and iOS development',
+    'Docker Desktop': 'Container platform for building and sharing apps',
+    'Docker': 'Container platform for building and sharing apps',
+    'iTerm2': 'Terminal emulator with advanced features for macOS',
+    'iTerm': 'Terminal emulator with advanced features for macOS',
+    'Postman': 'API development and testing platform',
+    'GitHub Desktop': 'Git client with GitHub integration',
+    'VisualVM': 'JVM monitoring and troubleshooting tool',
+    'Anaconda-Navigator': 'Python data science distribution manager',
+
+    # Browsers
+    'Brave Browser': 'Privacy-focused web browser with ad blocking',
+    'Google Chrome': 'Web browser by Google',
+    'Firefox': 'Open-source web browser by Mozilla',
+    'Microsoft Edge': 'Web browser by Microsoft',
+    'Arc': 'Browser designed for productivity and organization',
+    'Opera': 'Web browser with built-in VPN and ad blocker',
+    'DuckDuckGo': 'Privacy-focused web browser',
+    'Vivaldi': 'Highly customizable web browser',
+
+    # Communication
+    'Zoom': 'Video conferencing and meetings platform',
+    'Zoom.us': 'Video conferencing and meetings platform',
+    'Slack': 'Team communication and collaboration platform',
+    'Discord': 'Voice, video, and text communication platform',
+    'Signal': 'Encrypted messaging application',
+    'Telegram': 'Cloud-based messaging application',
+    'Telegram Desktop': 'Cloud-based messaging application',
+    'WhatsApp': 'Messaging and calling application',
+    'Microsoft Teams': 'Team collaboration and video conferencing',
+    'Skype': 'Video calling and messaging application',
+    'Webex': 'Video conferencing by Cisco',
+
+    # Media
+    'Spotify': 'Music streaming service',
+    'VLC': 'Free open-source media player',
+    'IINA': 'Modern media player for macOS',
+    'OBS': 'Open-source streaming and recording software',
+    'OBS Studio': 'Open-source streaming and recording software',
+    'HandBrake': 'Open-source video transcoder',
+    'DaVinci Resolve': 'Professional video editing software',
+    'Audacity': 'Free open-source audio editor',
+    'Plex': 'Media server and streaming platform',
+
+    # Productivity
+    'Notion': 'All-in-one workspace for notes and collaboration',
+    'Obsidian': 'Knowledge base with linked markdown notes',
+    'Evernote': 'Note-taking and organization application',
+    'Bear': 'Elegant markdown note-taking application',
+    'Alfred': 'Productivity app with spotlight replacement and workflows',
+    'Raycast': 'Productivity launcher and command palette',
+    'Rectangle': 'Window management with keyboard shortcuts',
+    'Magnet': 'Window manager for organized desktop',
+    'BetterTouchTool': 'Customization tool for input devices and window snapping',
+    'Bartender': 'Menu bar icon organizer',
+    'CleanMyMac': 'Mac cleaning and optimization utility',
+    'CleanMyMac X': 'Mac cleaning and optimization utility',
+    'AppCleaner': 'Application uninstaller for macOS',
+    'The Unarchiver': 'Archive extraction utility',
+    'Keka': 'File archiver and extractor',
+
+    # Security/Privacy
+    'Surfshark': 'VPN service for privacy and security',
+    'NordVPN': 'VPN service for privacy and security',
+    'ExpressVPN': 'VPN service for privacy and security',
+    'ProtonVPN': 'Privacy-focused VPN service',
+    '1Password': 'Password manager and secure vault',
+    '1Password 7': 'Password manager and secure vault',
+    'Bitwarden': 'Open-source password manager',
+    'LastPass': 'Password manager and digital vault',
+    'Malwarebytes': 'Anti-malware and security software',
+    'Little Snitch': 'Network monitor and firewall for macOS',
+
+    # AI/ML
+    'ChatGPT': 'AI assistant by OpenAI',
+    'Claude': 'AI assistant by Anthropic',
+    'Ollama': 'Run large language models locally',
+    'LM Studio': 'Desktop app for running local LLMs',
+    'SuperWhisper': 'AI-powered voice-to-text transcription',
+    'Whispering': 'AI speech-to-text transcription tool',
+
+    # Utilities
+    'Transmission': 'Lightweight BitTorrent client',
+    'DaisyDisk': 'Disk space analyzer and cleaner',
+    'iStat Menus': 'System monitor for the menu bar',
+}
+
+
+def get_manual_app_description(name: str) -> Optional[str]:
+    """
+    Get description for a manually installed application.
+
+    Args:
+        name: Application name
+
+    Returns:
+        Description string or None if not found
+    """
+    if name in MANUAL_APP_DESCRIPTIONS:
+        return MANUAL_APP_DESCRIPTIONS[name]
+
+    # Try case-insensitive match
+    name_lower = name.lower()
+    for app_name, desc in MANUAL_APP_DESCRIPTIONS.items():
+        if app_name.lower() == name_lower:
+            return desc
+
+    return None
+
+
 def check_brew_cask_exists(cask_name: str) -> bool:
     """
     Check if a Homebrew cask actually exists in the repository.

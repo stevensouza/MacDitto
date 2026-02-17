@@ -148,6 +148,7 @@ class ScanProfile:
     system_preferences: List[SystemPreference] = field(default_factory=list)
     dock_items: List[str] = field(default_factory=list)
     login_items: List[str] = field(default_factory=list)
+    setup_notes: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert ScanProfile to dictionary with nested object conversion."""
@@ -165,6 +166,7 @@ class ScanProfile:
             "system_preferences": [pref.to_dict() for pref in self.system_preferences],
             "dock_items": self.dock_items,
             "login_items": self.login_items,
+            "setup_notes": self.setup_notes,
         }
 
     def to_json(self, indent: int = 2) -> str:
@@ -210,6 +212,7 @@ class ScanProfile:
         ]
         profile.dock_items = data.get("dock_items", [])
         profile.login_items = data.get("login_items", [])
+        profile.setup_notes = data.get("setup_notes", "")
 
         return profile
 
