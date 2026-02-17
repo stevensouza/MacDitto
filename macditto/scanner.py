@@ -398,24 +398,35 @@ class Scanner:
             except PermissionError:
                 pass
 
-        # Now scan for developer mode extensions from Preferences file
+        # Now scan for developer mode extensions from preference files
+        # Brave stores extension settings in 'Secure Preferences', Chrome uses 'Preferences'
         profile_dir = os.path.dirname(extensions_path)
-        prefs_path = os.path.join(profile_dir, 'Preferences')
+        found_ext_ids = {ext.extension_id for ext in extensions}
 
-        if os.path.exists(prefs_path):
+        for prefs_filename in ['Secure Preferences', 'Preferences']:
+            prefs_path = os.path.join(profile_dir, prefs_filename)
+            if not os.path.exists(prefs_path):
+                continue
             try:
                 with open(prefs_path, 'r', encoding='utf-8') as f:
                     prefs = json.load(f)
                     ext_settings = prefs.get('extensions', {}).get('settings', {})
+                    if not ext_settings:
+                        continue
 
                     for ext_id, ext_data in ext_settings.items():
-                        # Check if this is a developer mode extension
-                        # Location 4 = unpacked extension (developer mode)
+                        if ext_id in found_ext_ids:
+                            continue
+
                         location = ext_data.get('location', 0)
+                        # Skip built-in browser components (location 5)
+                        if location == 5:
+                            continue
+
                         from_webstore = ext_data.get('from_webstore', True)
 
+                        # Location 4 = unpacked extension (developer mode)
                         if location == 4 or not from_webstore:
-                            # This is a developer extension
                             path = ext_data.get('path', '')
                             manifest_data = ext_data.get('manifest', {})
 
@@ -432,7 +443,6 @@ class Scanner:
                             name = manifest_data.get('name', ext_id)
                             version = manifest_data.get('version', 'dev')
 
-                            # Mark as developer extension
                             store_url = f"Developer Extension (unpacked from: {path})" if path else "Developer Extension"
 
                             extensions.append(BrowserExtension(
@@ -442,6 +452,10 @@ class Scanner:
                                 version=version,
                                 store_url=store_url
                             ))
+                            found_ext_ids.add(ext_id)
+
+                    # If we found settings in this file, no need to check the other
+                    break
             except Exception:
                 pass
 
@@ -722,6 +736,26 @@ class Scanner:
         profile.applications = self.scan_applications()
         item_counts['applications'] = len(profile.applications)
         print(f"  Found {len(profile.applications)} applications")
+
+        # Deduplicate: remove applications whose brew_package is already a cask
+        cask_packages = {c.brew_package for c in profile.homebrew_casks if c.brew_package}
+        cask_by_package = {c.brew_package: c for c in profile.homebrew_casks if c.brew_package}
+        deduped_apps = []
+        for app in profile.applications:
+            if app.brew_package and app.brew_package in cask_packages:
+                # Transfer dock/login flags to the matching cask entry
+                cask = cask_by_package[app.brew_package]
+                if app.in_dock:
+                    cask.in_dock = True
+                if app.start_on_login:
+                    cask.start_on_login = True
+            else:
+                deduped_apps.append(app)
+        if len(deduped_apps) < len(profile.applications):
+            removed = len(profile.applications) - len(deduped_apps)
+            print(f"  Removed {removed} duplicate(s) already in Homebrew casks")
+            profile.applications = deduped_apps
+            item_counts['applications'] = len(profile.applications)
 
         # Step 3: Scan Dock
         if self.progress_callback:

@@ -21,18 +21,15 @@
         <div class="summary">
             <h3>Summary</h3>
             <div class="summary-cards">
-                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;"
-                   onclick="expandAllCategories()">
+                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;">
                     <div class="card-number">{{ profile.homebrew_formulae|length }}</div>
                     <div class="card-label">Brew Packages</div>
                 </a>
-                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;"
-                   onclick="expandAllCategories()">
+                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;">
                     <div class="card-number">{{ profile.homebrew_casks|length }}</div>
                     <div class="card-label">Cask Apps</div>
                 </a>
-                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;"
-                   onclick="expandAllCategories()">
+                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;">
                     <div class="card-number">{{ profile.applications|length }}</div>
                     <div class="card-label">Applications</div>
                 </a>
@@ -81,77 +78,77 @@ Examples:
                 <div><span style="font-size: 1.2rem;">▶️</span> = Starts at Login</div>
             </div>
 
-            {% for category, items in items_by_category.items() %}
             <div class="category-section">
-                <div class="category-header" onclick="toggleCategory('{{ category }}')">
-                    <h4>{{ category }}</h4>
-                    <span class="category-count">{{ items|length }} items</span>
-                    <span class="toggle-icon">▼</span>
-                </div>
-                <div id="category-{{ category }}" class="category-items">
-                    <table class="items-table">
-                        <thead>
-                            <tr>
-                                <th title="Include in export">Export</th>
-                                <th>Name</th>
-                                <th>Description</th>
-                                <th>Install Method</th>
-                                <th>Install Command</th>
-                                <th title="📌 = In Dock, ▶️ = Login Item">Flags</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in items %}
-                            <tr>
-                                <td>
-                                    <input type="checkbox"
-                                           {% if item.enabled %}checked{% endif %}
-                                           onchange="toggleItem('{{ item.item_type }}', {{ loop.index0 }}, this.checked)">
-                                </td>
-                                <td class="item-name">{{ item.name }}</td>
-                                <td class="item-description">
-                                    {% if item.metadata and item.metadata.description %}
-                                        {{ item.metadata.description }}
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th title="Include in export">Export</th>
+                            <th>Category</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Install Method</th>
+                            <th>Install Command</th>
+                            <th title="📌 = In Dock, ▶️ = Login Item">Flags</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set ns = namespace(prev_category='') %}
+                        {% for item in all_items %}
+                        {% set current_cat = item.get('category', 'Other') %}
+                        <tr class="{% if current_cat != ns.prev_category %}category-first-row{% endif %}" data-category="{{ current_cat }}">
+                            <td>
+                                <input type="checkbox"
+                                       {% if item.enabled %}checked{% endif %}
+                                       onchange="toggleItem('{{ item.item_type }}', {{ item.original_index }}, this.checked)">
+                            </td>
+                            <td class="item-category">
+                                {% if current_cat != ns.prev_category %}
+                                    <span class="category-badge">{{ current_cat }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="item-name">{{ item.name }}</td>
+                            <td class="item-description">
+                                {% if item.metadata and item.metadata.description %}
+                                    {{ item.metadata.description }}
+                                {% else %}
+                                    <span style="color: var(--text-tertiary);">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ item.install_method }}">
+                                    {{ item.install_method }}
+                                </span>
+                            </td>
+                            <td>
+                                <code>
+                                    {% if item.install_method == 'brew' %}
+                                        brew install {{ item.brew_package or item.name }}
+                                    {% elif item.install_method == 'cask' %}
+                                        brew install --cask {{ item.brew_package or item.name }}
+                                    {% elif item.install_method == 'manual' %}
+                                        <span style="color: var(--text-tertiary);">Manual install</span>
                                     {% else %}
-                                        <span style="color: var(--text-tertiary);">—</span>
+                                        <span style="color: var(--text-tertiary);">{{ item.install_method }}</span>
                                     {% endif %}
-                                </td>
-                                <td>
-                                    <span class="badge badge-{{ item.install_method }}">
-                                        {{ item.install_method }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <code>
-                                        {% if item.install_method == 'brew' %}
-                                            brew install {{ item.brew_package or item.name }}
-                                        {% elif item.install_method == 'cask' %}
-                                            brew install --cask {{ item.brew_package or item.name }}
-                                        {% elif item.install_method == 'manual' %}
-                                            <span style="color: var(--text-tertiary);">Manual install</span>
-                                        {% else %}
-                                            <span style="color: var(--text-tertiary);">{{ item.install_method }}</span>
-                                        {% endif %}
-                                    </code>
-                                </td>
-                                <td class="item-flags">
-                                    {% if item.in_dock %}
-                                        <span class="flag" title="This app is in your Dock" style="cursor: help;">📌</span>
-                                    {% endif %}
-                                    {% if item.start_on_login %}
-                                        <span class="flag" title="This app starts automatically at login" style="cursor: help;">▶️</span>
-                                    {% endif %}
-                                    {% if not item.in_dock and not item.start_on_login %}
-                                        <span style="color: var(--text-tertiary);">—</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                                </code>
+                            </td>
+                            <td class="item-flags">
+                                {% if item.in_dock %}
+                                    <span class="flag" title="This app is in your Dock" style="cursor: help;">📌</span>
+                                {% endif %}
+                                {% if item.start_on_login %}
+                                    <span class="flag" title="This app starts automatically at login" style="cursor: help;">▶️</span>
+                                {% endif %}
+                                {% if not item.in_dock and not item.start_on_login %}
+                                    <span style="color: var(--text-tertiary);">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% set ns.prev_category = current_cat %}
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            {% endfor %}
         </div>
 
         {% if profile.browser_extensions %}
@@ -220,47 +217,21 @@ Examples:
 
 {% block scripts %}
 <script>
-function toggleCategory(category) {
-    const element = document.getElementById('category-' + category);
-    element.classList.toggle('collapsed');
-}
-
 function filterItems() {
     const searchTerm = document.getElementById('searchBox').value.toLowerCase();
-    const categories = document.querySelectorAll('.category-section');
+    const rows = document.querySelectorAll('.items-table tbody tr');
 
-    categories.forEach(category => {
-        const items = category.querySelectorAll('.items-table tbody tr');
-        let visibleCount = 0;
-
-        items.forEach(item => {
-            const itemName = item.querySelector('.item-name').textContent.toLowerCase();
-            if (itemName.includes(searchTerm)) {
-                item.style.display = '';
-                visibleCount++;
+    rows.forEach(row => {
+        const itemName = row.querySelector('.item-name');
+        const category = row.getAttribute('data-category') || '';
+        if (itemName) {
+            const name = itemName.textContent.toLowerCase();
+            if (name.includes(searchTerm) || category.toLowerCase().includes(searchTerm)) {
+                row.style.display = '';
             } else {
-                item.style.display = 'none';
-            }
-        });
-
-        // Hide category if no visible items
-        if (visibleCount === 0) {
-            category.style.display = 'none';
-        } else {
-            category.style.display = '';
-            // Auto-expand category when searching
-            if (searchTerm) {
-                const categoryItems = category.querySelector('.category-items');
-                categoryItems.classList.remove('collapsed');
+                row.style.display = 'none';
             }
         }
-    });
-}
-
-function expandAllCategories() {
-    const categoryItems = document.querySelectorAll('.category-items');
-    categoryItems.forEach(item => {
-        item.classList.remove('collapsed');
     });
 }
 

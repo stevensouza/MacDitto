@@ -281,8 +281,9 @@ class TestScanBrowserExtensions:
         # Mock directory structure
         # First exists check: extensions directory exists
         # Second exists check: manifest.json exists
-        # Third exists check: Preferences file exists
-        mock_exists.side_effect = [True, True, False]
+        # Third exists check: Secure Preferences file exists
+        # Fourth exists check: Preferences file exists
+        mock_exists.side_effect = [True, True, False, False]
         mock_isdir.return_value = True
         mock_listdir.side_effect = [
             ['extension_id_123'],  # Extensions directory

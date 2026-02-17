@@ -67,16 +67,17 @@ def test_profiles_route(client):
 
 def test_organize_items_by_category(sample_profile):
     """Test organizing items by category."""
-    items_by_category = organize_items_by_category(sample_profile)
+    all_items = organize_items_by_category(sample_profile)
 
-    assert "Development" in items_by_category
-    assert "Browsers" in items_by_category
+    categories = [item.get('category', 'Other') for item in all_items]
+    assert "Development" in categories
+    assert "Browsers" in categories
 
     # Development should have 4 items (2 formulae + 1 cask + 1 app)
-    assert len(items_by_category["Development"]) == 4
+    assert sum(1 for c in categories if c == "Development") == 4
 
     # Browsers should have 1 item
-    assert len(items_by_category["Browsers"]) == 1
+    assert sum(1 for c in categories if c == "Browsers") == 1
 
 
 def test_compute_diff():

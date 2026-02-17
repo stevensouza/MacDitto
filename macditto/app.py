@@ -69,18 +69,21 @@ def dashboard():
         # No profile exists, show empty dashboard with scan button
         return render_template('dashboard.html',
                              profile=None,
-                             items_by_category={},
+                             all_items=[],
                              category_counts={})
 
-    # Organize items by category
-    items_by_category = organize_items_by_category(current_profile)
+    # Organize items by category (returns flat list sorted by category)
+    all_items = organize_items_by_category(current_profile)
 
     # Calculate counts per category
-    category_counts = {category: len(items) for category, items in items_by_category.items()}
+    category_counts = {}
+    for item in all_items:
+        cat = item.get('category', 'Other')
+        category_counts[cat] = category_counts.get(cat, 0) + 1
 
     return render_template('dashboard.html',
                          profile=current_profile,
-                         items_by_category=items_by_category,
+                         all_items=all_items,
                          category_counts=category_counts)
 
 
@@ -666,37 +669,31 @@ def open_file():
 # Helper functions
 
 def organize_items_by_category(profile):
-    """Organize all items by category."""
-    items_by_category = {}
-
-    # Combine all items
+    """Organize all items by category, returning a flat list sorted by category."""
     all_items = []
 
-    for item in profile.homebrew_formulae:
+    for idx, item in enumerate(profile.homebrew_formulae):
         item_dict = item.to_dict()
         item_dict['item_type'] = 'homebrew_formula'
+        item_dict['original_index'] = idx
         all_items.append(item_dict)
 
-    for item in profile.homebrew_casks:
+    for idx, item in enumerate(profile.homebrew_casks):
         item_dict = item.to_dict()
         item_dict['item_type'] = 'homebrew_cask'
+        item_dict['original_index'] = idx
         all_items.append(item_dict)
 
-    for item in profile.applications:
+    for idx, item in enumerate(profile.applications):
         item_dict = item.to_dict()
         item_dict['item_type'] = 'application'
+        item_dict['original_index'] = idx
         all_items.append(item_dict)
 
-    # Group by category
-    for item in all_items:
-        category = item.get('category', 'Other')
-        if category not in items_by_category:
-            items_by_category[category] = []
-        items_by_category[category].append(item)
+    # Sort by category, then by name within each category
+    all_items.sort(key=lambda x: (x.get('category', 'Other'), x.get('name', '').lower()))
 
-    # Sort categories
-    sorted_categories = sorted(items_by_category.keys())
-    return {cat: items_by_category[cat] for cat in sorted_categories}
+    return all_items
 
 
 def get_item_list(profile, item_type):

@@ -161,19 +161,22 @@ def test_category_organization():
         Item(name="brave-browser", install_method="cask", category="Browsers", brew_package="brave-browser"),
     ]
 
-    items_by_category = organize_items_by_category(profile)
+    all_items = organize_items_by_category(profile)
+
+    categories = [item.get('category', 'Other') for item in all_items]
+    unique_categories = set(categories)
 
     # Should have 3 categories
-    assert len(items_by_category) == 3
+    assert len(unique_categories) == 3
 
     # Development should have 3 items (2 formulae + 1 cask)
-    assert len(items_by_category["Development"]) == 3
+    assert sum(1 for c in categories if c == "Development") == 3
 
     # Media should have 1 item
-    assert len(items_by_category["Media"]) == 1
+    assert sum(1 for c in categories if c == "Media") == 1
 
     # Browsers should have 1 item
-    assert len(items_by_category["Browsers"]) == 1
+    assert sum(1 for c in categories if c == "Browsers") == 1
 
 
 def test_diff_computation():
