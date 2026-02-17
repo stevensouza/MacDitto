@@ -182,6 +182,68 @@ body::after {
     transform: translateY(-1px);
 }
 
+/* Nav Dropdowns */
+.nav-dropdown {
+    position: relative;
+}
+
+.nav-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.dropdown-arrow {
+    font-size: 0.65rem;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-dropdown:hover .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.nav-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 160px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 0.4rem;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-50%) translateY(4px);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 200;
+}
+
+.nav-dropdown:hover .nav-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+.nav-dropdown-menu a {
+    display: block;
+    padding: 0.5rem 0.75rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 5px;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.nav-dropdown-menu a:hover {
+    color: var(--cyan-bright);
+    background: rgba(0, 217, 255, 0.1);
+    transform: none;
+}
+
 /* Dashboard */
 .dashboard {
     animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1020,6 +1082,15 @@ code {
     .nav-links {
         flex-wrap: wrap;
         justify-content: center;
+    }
+
+    .nav-dropdown-menu {
+        left: 0;
+        transform: translateX(0);
+    }
+
+    .nav-dropdown:hover .nav-dropdown-menu {
+        transform: translateX(0) translateY(0);
     }
 
     .summary-cards {

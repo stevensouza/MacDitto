@@ -14,15 +14,30 @@
         <div class="container">
             <h1 class="logo">MacDitto</h1>
             <div class="nav-links">
-                <a href="/">Dashboard</a>
-                <a href="#" onclick="showProfiles()">Profiles</a>
-                <a href="#" onclick="runScan()">Scan</a>
-                <a href="#" onclick="saveProfile()">Save</a>
-                <a href="#" onclick="exportProfile()">Export</a>
-                <a href="#" onclick="showExportHistory()">Export History</a>
-                <a href="#" onclick="showScanHistory()">Scan History</a>
-                <a href="/view_json">View JSON</a>
-                <a href="/help">Help</a>
+                <a href="/" title="View your Mac configuration overview">Dashboard</a>
+                <div class="nav-dropdown">
+                    <a href="#" class="nav-dropdown-trigger" title="Scan your system for installed software">Scan <span class="dropdown-arrow">&#9662;</span></a>
+                    <div class="nav-dropdown-menu">
+                        <a href="#" onclick="runScan()" title="Scan your system for installed software">Run Scan</a>
+                        <a href="#" onclick="showScanHistory()" title="View past scan results">Scan History</a>
+                    </div>
+                </div>
+                <div class="nav-dropdown">
+                    <a href="#" class="nav-dropdown-trigger" title="Manage saved profiles">Profiles <span class="dropdown-arrow">&#9662;</span></a>
+                    <div class="nav-dropdown-menu">
+                        <a href="#" onclick="showProfiles()" title="Browse and load saved profiles">Load Profile</a>
+                        <a href="#" onclick="saveProfile()" title="Save current profile to disk">Save Profile</a>
+                    </div>
+                </div>
+                <div class="nav-dropdown">
+                    <a href="#" class="nav-dropdown-trigger" title="Export install scripts and files">Export <span class="dropdown-arrow">&#9662;</span></a>
+                    <div class="nav-dropdown-menu">
+                        <a href="#" onclick="exportProfile()" title="Generate install scripts and files">Export Files</a>
+                        <a href="#" onclick="showExportHistory()" title="View past exports and open files">Export History</a>
+                    </div>
+                </div>
+                <a href="/view_json" title="View raw profile data as JSON">View JSON</a>
+                <a href="/help" title="User manual and documentation">Help</a>
             </div>
         </div>
     </nav>
