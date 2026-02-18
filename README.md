@@ -109,11 +109,11 @@ Then open your browser to: **http://localhost:5000**
 
 ### Basic Usage (5 Steps)
 
-1. **Click "Scan"** - Analyzes your Mac (takes 10-30 seconds)
-2. **Review items** - See everything discovered, organized by category
+1. **Click "Scan"** - Analyzes your Mac (takes 10-30 seconds), progress shown in real time
+2. **Review items** - See everything discovered in a unified table, searchable by name
 3. **Enable/disable items** - Checkboxes let you choose what to replicate
-4. **Click "Save Profile"** - Creates a timestamped snapshot
-5. **Click "Export"** - Generates install scripts for new Mac
+4. **Click "Save Profile"** - Creates a timestamped snapshot (under Profiles menu)
+5. **Click "Export"** - Generates install scripts for new Mac (under Export menu)
 
 ---
 
@@ -161,15 +161,18 @@ Generates ready-to-run installation files:
 - **`Brewfile`** - Homebrew bundle for automated installs
 - **`install.sh`** - Bash script that runs everything automatically
 - **`MANUAL_STEPS.md`** - Checklist for manual installations
+- **`SETUP_NOTES.md`** - Your personal setup notes exported alongside scripts
+- **`SOFTWARE_CATALOG.md`** - Markdown catalog of all software with descriptions
 - **`macditto_config.json`** - Full configuration backup
 
 ### ✅ Web Interface
 
-- **Dashboard** showing all items by category
-- **Checkboxes** to enable/disable each item
-- **Item properties** visible (install method, dock status, category)
-- **Search/filter** capabilities (coming soon)
-- **Rescan** button to detect new installs
+- **Dashboard** showing all items in a unified searchable table
+- **Checkboxes** to enable/disable each item for export
+- **Item properties** visible (category, description, install method, install command, dock/login flags)
+- **Real-time search** to filter items by name
+- **Setup Notes** section — editable markdown notes saved with each profile
+- **Scan progress** modal with live step-by-step updates
 
 ---
 
@@ -427,6 +430,8 @@ Select: macbook-air-work_20260215_143022.json
   - Brewfile                  # Homebrew packages
   - install.sh                # Automated install script
   - MANUAL_STEPS.md           # Manual installation checklist
+  - SETUP_NOTES.md            # Your personal setup notes
+  - SOFTWARE_CATALOG.md       # Catalog of all software with descriptions
   - macditto_config.json      # Full configuration backup
 
 # Transfer to new Mac:
@@ -586,74 +591,101 @@ cat scan_results.json | jq '.categories.homebrew_formulae[] | .name'
 
 ## Web Interface Guide
 
+### Navigation Bar
+
+The navbar has five top-level items, three of which are dropdowns:
+
+- **Dashboard** - Main configuration overview
+- **Scan ▼**
+  - *Run Scan* - Scan your system (shows real-time progress modal)
+  - *Scan History* - Browse past scan results
+- **Profiles ▼**
+  - *Load Profile* - Browse and load a saved profile
+  - *Save Profile* - Save the current scan as a timestamped snapshot
+- **Export ▼**
+  - *Export Files* - Generate install scripts and documentation
+  - *Export History* - View and open previously generated exports
+- **View JSON** - Inspect raw profile data
+- **Help** - This user manual
+
 ### Dashboard
 
-The main dashboard shows all discovered items organized by category:
+The main dashboard shows all discovered items in a single scrollable table:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│ MacDitto Dashboard                            [Help]    │
-│─────────────────────────────────────────────────────────│
-│ Last Scan: 2026-02-15 14:30:22                          │
-│ Machine: Steve's MacBook Air                            │
-│                                                          │
-│ [Scan] [Save Profile] [Load Profile ▼] [Export]         │
-│─────────────────────────────────────────────────────────│
-│                                                          │
-│ Development (35 items)                          [Expand] │
-│                                                          │
-│ Browsers (3 items)                              [Expand] │
-│                                                          │
-│ Productivity (12 items)                         [Expand] │
-│                                                          │
-│ Media (8 items)                                 [Expand] │
-│                                                          │
-│ Communication (5 items)                         [Expand] │
-│                                                          │
-│ Security/Privacy (4 items)                      [Expand] │
-│                                                          │
-│ AI/ML (6 items)                                 [Expand] │
-│                                                          │
-│ Utilities (10 items)                            [Expand] │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│  MacDitto  Dashboard  Scan▼  Profiles▼  Export▼  View JSON  Help    │
+│─────────────────────────────────────────────────────────────────────│
+│  Mac Configuration                                                  │
+│  Machine: Steve's MacBook Air   Scanned: 2026-02-17 10:00          │
+│  💡 Export Guide: chmod +x install.sh && ./install.sh              │
+│─────────────────────────────────────────────────────────────────────│
+│  Summary                                                            │
+│  [ 42 Brew Pkgs ] [ 18 Cask Apps ] [ 67 Apps ] [ 12 Ext ] [ 8 Prefs ]│
+│─────────────────────────────────────────────────────────────────────│
+│  Setup Notes ▼ (click to expand)                                    │
+│─────────────────────────────────────────────────────────────────────│
+│  Installed Items                              🔍 Search apps...      │
+│  Legend: 📌 = In Dock   ▶️ = Starts at Login                        │
+│  ┌────────┬─────────────┬──────────────┬───────────┬───────┬──────┐ │
+│  │ Export │ Category    │ Name         │ Inst. Mth │ Cmd   │ Flgs │ │
+│  ├────────┼─────────────┼──────────────┼───────────┼───────┼──────┤ │
+│  │   ☑   │ Development │ IntelliJ IDEA│ manual    │ —     │ 📌   │ │
+│  │   ☑   │             │ Docker       │ cask      │ brew… │ 📌▶️ │ │
+│  │   ☑   │             │ git          │ brew      │ brew… │  —   │ │
+│  │   ☑   │ Browsers    │ Brave Browser│ cask      │ brew… │ 📌   │ │
+│  │   ☐   │ Utilities   │ python@3.9   │ brew      │ brew… │  —   │ │
+│  └────────┴─────────────┴──────────────┴───────────┴───────┴──────┘ │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Expanded Category View
+### Summary Cards
 
-```
-┌─────────────────────────────────────────────────────────┐
-│ Development (35 items)                        [Collapse] │
-│─────────────────────────────────────────────────────────│
-│ ☑ IntelliJ IDEA Ultimate                                │
-│   Install: manual | Dock: yes | Login: no               │
-│   https://www.jetbrains.com/idea/download/              │
-│                                                          │
-│ ☑ Docker Desktop                                         │
-│   Install: brew cask | Dock: yes | Login: yes           │
-│   Package: docker                                        │
-│                                                          │
-│ ☑ git                                                    │
-│   Install: brew | Dock: no | Login: no                  │
-│   Package: git                                           │
-│                                                          │
-│ ☑ node                                                   │
-│   Install: brew | Dock: no | Login: no                  │
-│   Package: node                                          │
-│                                                          │
-│ ☐ python@3.9                                             │
-│   Install: brew | Dock: no | Login: no                  │
-│   Package: python@3.9                                    │
-│   Note: Older version - disabled for export             │
-└─────────────────────────────────────────────────────────┘
-```
+Five clickable cards at the top of the dashboard jump to the relevant section:
 
-### Buttons Explained
+| Card | What it counts |
+|------|---------------|
+| Brew Packages | Homebrew formulae (CLI tools) |
+| Cask Apps | Homebrew casks (GUI apps) |
+| Applications | Apps found in /Applications |
+| Extensions | Browser extensions (Chrome, Brave) |
+| Preferences | macOS system preferences captured |
 
-- **Scan** - Run new scan to discover current Mac configuration
-- **Save Profile** - Save current configuration as timestamped snapshot
-- **Load Profile** - Load a previously saved profile
-- **Export** - Generate install scripts and manual instructions
-- **Compare** - Show differences between two profiles (future feature)
+### Items Table
+
+All installed items appear in one flat, category-sorted table with these columns:
+
+| Column | Description |
+|--------|-------------|
+| **Export** | Checkbox — uncheck to exclude from export |
+| **Category** | Badge shown on the first row of each category group |
+| **Name** | App or package name |
+| **Description** | Short description (from Homebrew metadata where available) |
+| **Install Method** | `brew`, `cask`, or `manual` |
+| **Install Command** | Ready-to-run command (e.g., `brew install git`) |
+| **Flags** | 📌 if in Dock, ▶️ if starts at login |
+
+Use the **Search** box to filter items by name in real time.
+
+### Setup Notes
+
+The collapsible **Setup Notes** section lets you write free-form markdown notes that:
+
+- Are saved with each profile
+- Are exported as `SETUP_NOTES.md` when you export
+- Useful for login hints, manual steps, license locations, and custom settings
+
+### Navbar Actions Explained
+
+| Action | What it does |
+|--------|-------------|
+| **Run Scan** | Scans your Mac; shows a step-by-step progress modal |
+| **Scan History** | Opens a modal listing past scans you can inspect |
+| **Load Profile** | Opens a modal to browse and load a saved profile |
+| **Save Profile** | Prompts for an optional name, then saves a JSON snapshot |
+| **Export Files** | Generates install scripts in `output/export_TIMESTAMP/` |
+| **Export History** | Opens a modal listing past exports with clickable file links |
+| **View JSON** | Opens raw profile JSON in the browser |
 
 ---
 
@@ -671,10 +703,10 @@ The main dashboard shows all discovered items organized by category:
    python3 -m macditto.app
 
    # In browser:
-   # 1. Click "Scan"
-   # 2. Review items, disable anything you don't want
-   # 3. Click "Save Profile" (name: "new-mac-setup")
-   # 4. Click "Export"
+   # 1. Click Scan > Run Scan
+   # 2. Review items in the table, uncheck anything you don't want
+   # 3. Click Profiles > Save Profile (name: "new-mac-setup")
+   # 4. Click Export > Export Files
    # 5. Commit to Git or copy to USB
    ```
 
@@ -736,8 +768,8 @@ The main dashboard shows all discovered items organized by category:
 
 # Or run manually each month:
 python3 -m macditto.app
-# Click "Scan"
-# Click "Save Profile" with name like "monthly-2026-02"
+# Click Scan > Run Scan
+# Click Profiles > Save Profile with name like "monthly-2026-02"
 
 # Compare with last month:
 # Select profiles: monthly-2026-01 vs monthly-2026-02
@@ -803,8 +835,8 @@ MacDitto/
 │   ├── models.py          # Data models (ScanProfile, etc.)
 │   ├── utils.py           # Utility functions (categorization)
 │   ├── templates/         # HTML templates for web interface
-│   │   ├── base.html      # Base template with navigation
-│   │   ├── dashboard.html # Main dashboard view
+│   │   ├── base.html      # Base template with navbar and modals
+│   │   ├── dashboard.html # Main dashboard with items table
 │   │   ├── diff.html      # Profile comparison view
 │   │   └── help.html      # Help/documentation page
 │   └── static/            # CSS, JavaScript, images
@@ -816,9 +848,11 @@ MacDitto/
 ├── output/                # Generated export files
 │   ├── .gitkeep
 │   └── export_*/          # Timestamped export directories
-│       ├── Brewfile       # Homebrew bundle file
-│       ├── install.sh     # Automated install script
-│       ├── MANUAL_STEPS.md # Manual installation checklist
+│       ├── Brewfile            # Homebrew bundle file
+│       ├── install.sh          # Automated install script
+│       ├── MANUAL_STEPS.md     # Manual installation checklist
+│       ├── SETUP_NOTES.md      # Personal setup notes
+│       ├── SOFTWARE_CATALOG.md # Software catalog with descriptions
 │       └── macditto_config.json # Full configuration
 ├── tests/                 # Test suite
 │   ├── __init__.py
@@ -1101,6 +1135,8 @@ ls -ltr profiles/
 - `Brewfile` - Homebrew packages to install
 - `install.sh` - Automated installation script
 - `MANUAL_STEPS.md` - Checklist for manual installations
+- `SETUP_NOTES.md` - Your personal setup notes
+- `SOFTWARE_CATALOG.md` - Catalog of all software with descriptions
 - `macditto_config.json` - Full configuration backup
 
 **When to use:**
@@ -1367,4 +1403,4 @@ SOFTWARE.
 
 ---
 
-**Last Updated:** 2026-02-15
+**Last Updated:** 2026-02-17
