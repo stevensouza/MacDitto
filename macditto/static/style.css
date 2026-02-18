@@ -474,6 +474,31 @@ tr.category-first-row td {
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Sortable column headers */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+}
+
+.sortable:hover {
+    color: var(--cyan-bright) !important;
+}
+
+.sort-arrow {
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    margin-left: 0.25rem;
+}
+
+/* Location column */
+.item-location {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* Tables */
 .items-table {
     width: 100%;
@@ -954,8 +979,27 @@ code {
     width: 100%;
 }
 
-/* Profile List */
-.profile-item {
+/* Saved Scans Table Row */
+.scan-row-clickable {
+    transition: all 0.2s;
+}
+
+.scan-row-clickable:hover {
+    background: var(--bg-elevated) !important;
+}
+
+.scan-row-clickable:hover td:first-child::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--cyan-bright);
+}
+
+/* Scan Item (used in saved scans list) */
+.scan-item {
     padding: 1rem 1.5rem;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-subtle);
@@ -966,7 +1010,7 @@ code {
     position: relative;
 }
 
-.profile-item::before {
+.scan-item::before {
     content: '';
     position: absolute;
     left: 0;
@@ -978,23 +1022,23 @@ code {
     transition: opacity 0.3s;
 }
 
-.profile-item:hover {
+.scan-item:hover {
     background: var(--bg-elevated);
     border-color: var(--cyan-bright);
     transform: translateX(4px);
 }
 
-.profile-item:hover::before {
+.scan-item:hover::before {
     opacity: 1;
 }
 
-.profile-item h4 {
+.scan-item h4 {
     font-family: 'Outfit', sans-serif;
     margin-bottom: 0.5rem;
     color: var(--text-primary);
 }
 
-.profile-item small {
+.scan-item small {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.75rem;
     color: var(--text-tertiary);

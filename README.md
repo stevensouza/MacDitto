@@ -27,15 +27,14 @@ A Python tool for scanning, capturing, and replicating macOS environments across
 MacDitto solves a common problem: **setting up a new Mac takes hours of manual work**. With MacDitto, you can:
 
 1. **Scan** your current Mac to capture everything installed and configured
-2. **Review** discovered items in a web interface
-3. **Save** configuration snapshots (profiles)
-4. **Export** automated install scripts + manual instructions
-5. **Run** the scripts on a new Mac to replicate your setup
+2. **Review** discovered items in a web interface (scan auto-saves with installation files)
+3. **Transfer** the saved scan directory to your new Mac
+4. **Run** the install scripts on a new Mac to replicate your setup
 
 **Example scenario:**
 
 ```
-Current Mac ──> [MacDitto Scan] ──> Profile JSON + Scripts
+Current Mac ──> [MacDitto Scan] ──> Scan JSON + Scripts
                                            │
                                            ▼
 New Mac <─────── [Run Scripts] <───── Transfer Files
@@ -107,13 +106,11 @@ python3 -c "from macditto.app import app; app.run(debug=True)"
 
 Then open your browser to: **http://localhost:5000**
 
-### Basic Usage (5 Steps)
+### Basic Usage (3 Steps)
 
-1. **Click "Scan"** - Analyzes your Mac (takes 10-30 seconds), progress shown in real time
+1. **Click "Run Scan"** - Analyzes your Mac (takes 10-30 seconds), auto-saves scan + generates installation files
 2. **Review items** - See everything discovered in a unified table, searchable by name
-3. **Enable/disable items** - Checkboxes let you choose what to replicate
-4. **Click "Save Profile"** - Creates a timestamped snapshot (under Profiles menu)
-5. **Click "Export"** - Generates install scripts for new Mac (under Export menu)
+3. **Toggle items & Regenerate** - Enable/disable items, then click "Regenerate Files" to update installation files
 
 ---
 
@@ -147,31 +144,27 @@ All discovered items are automatically categorized:
 | **AI/ML** | Claude Code, Whisper, ML frameworks |
 | **Utilities** | ffmpeg, tesseract, compression tools |
 
-### ✅ Profile Management
+### ✅ Auto-Saved Scans
 
-- **Save snapshots** with timestamps: `macditto_20260215_143022.json`
-- **Load any profile** to view past configurations
-- **Compare profiles** to see what changed over time
-- **Version control friendly** - JSON format, safe to commit to Git
+Every scan automatically saves to a timestamped directory with all installation files:
 
-### ✅ Export Scripts
-
-Generates ready-to-run installation files:
-
+- **`saved_scan.json`** - Complete scan data
 - **`Brewfile`** - Homebrew bundle for automated installs
 - **`install.sh`** - Bash script that runs everything automatically
 - **`MANUAL_STEPS.md`** - Checklist for manual installations
-- **`SETUP_NOTES.md`** - Your personal setup notes exported alongside scripts
+- **`SETUP_NOTES.md`** - Your personal setup notes
 - **`SOFTWARE_CATALOG.md`** - Markdown catalog of all software with descriptions
-- **`macditto_config.json`** - Full configuration backup
+
+Load any saved scan to review, compare, or regenerate files after toggling items.
 
 ### ✅ Web Interface
 
 - **Dashboard** showing all items in a unified searchable table
-- **Checkboxes** to enable/disable each item for export
-- **Item properties** visible (category, description, install method, install command, dock/login flags)
+- **Sortable columns** — click any column header to sort ascending/descending
+- **Checkboxes** to enable/disable each item for installation files
+- **Item properties** visible (category, description, install method, location, install command, dock/login flags)
 - **Real-time search** to filter items by name
-- **Setup Notes** section — editable markdown notes saved with each profile
+- **Setup Notes** section — editable markdown notes saved with each scan
 - **Scan progress** modal with live step-by-step updates
 
 ---
@@ -404,44 +397,36 @@ Browsers (3 items)
   ☐ Firefox (rarely used - disabled)
 ```
 
-### Example 2: Save and Load Profiles
+### Example 2: Load a Saved Scan
 
 ```bash
-# After scanning, save profile
-Click "Save Profile" button
-Enter name: "macbook-air-work"
+# Click Scan > Saved Scans
+# Select a saved scan from the list
+# Scan loads into the dashboard
 
-# File created:
-profiles/macbook-air-work_20260215_143022.json
-
-# Later, load the profile
-Click "Load Profile" dropdown
-Select: macbook-air-work_20260215_143022.json
-
-# Profile loads - shows your configuration from that date
+# Toggle items on/off, then click "Regenerate Files" to update
 ```
 
-### Example 3: Export for New Mac
+### Example 3: Transfer to New Mac
 
 ```bash
-# Click "Export" button in web interface
-
-# Output generated in: output/export_20260215_143022/
+# After scanning, files are auto-generated in:
+# scans/scan_MacBookAir_20260215_143022/
+  - saved_scan.json           # Complete scan data
   - Brewfile                  # Homebrew packages
   - install.sh                # Automated install script
   - MANUAL_STEPS.md           # Manual installation checklist
   - SETUP_NOTES.md            # Your personal setup notes
   - SOFTWARE_CATALOG.md       # Catalog of all software with descriptions
-  - macditto_config.json      # Full configuration backup
 
 # Transfer to new Mac:
 # Option 1: Commit to Git
-git add output/export_20260215_143022/
-git commit -m "MacDitto export for new Mac setup"
+git add scans/scan_MacBookAir_20260215_143022/
+git commit -m "MacDitto scan for new Mac setup"
 git push
 
 # Option 2: USB drive
-cp -r output/export_20260215_143022/ /Volumes/USB_DRIVE/
+cp -r scans/scan_MacBookAir_20260215_143022/ /Volumes/USB_DRIVE/
 
 # Option 3: AirDrop
 # Right-click folder → Share → AirDrop
@@ -458,10 +443,10 @@ cp -r output/export_20260215_143022/ /Volumes/USB_DRIVE/
 # Step 2: Get MacDitto export files
 # From Git:
 git clone https://github.com/yourusername/MacDitto.git
-cd MacDitto/output/export_20260215_143022/
+cd MacDitto/scans/scan_MacBookAir_20260215_143022/
 
 # Or from USB:
-cd /Volumes/USB_DRIVE/export_20260215_143022/
+cd /Volumes/USB_DRIVE/scan_MacBookAir_20260215_143022/
 
 # Step 3: Run automated install
 chmod +x install.sh
@@ -524,15 +509,15 @@ Setup SSH key:
   # Add to GitHub: Settings → SSH Keys
 ```
 
-### Example 5: Compare Profiles (Track Changes)
+### Example 5: Compare Scans (Track Changes)
 
 ```bash
 # Scenario: You want to see what changed on your Mac in the last month
 
 # In web interface:
-# 1. Select two profiles to compare
-Profile 1: macditto_20260115_100000.json (January 15)
-Profile 2: macditto_20260215_143022.json (February 15)
+# 1. Select two scans to compare
+Scan 1: scan_MacBookAir_20260115_100000 (January 15)
+Scan 2: scan_MacBookAir_20260215_143022 (February 15)
 
 # 2. Click "Compare"
 
@@ -593,19 +578,13 @@ cat scan_results.json | jq '.categories.homebrew_formulae[] | .name'
 
 ### Navigation Bar
 
-The navbar has five top-level items, three of which are dropdowns:
+The navbar has three items:
 
 - **Dashboard** - Main configuration overview
 - **Scan ▼**
-  - *Run Scan* - Scan your system (shows real-time progress modal)
-  - *Scan History* - Browse past scan results
-- **Profiles ▼**
-  - *Load Profile* - Browse and load a saved profile
-  - *Save Profile* - Save the current scan as a timestamped snapshot
-- **Export ▼**
-  - *Export Files* - Generate install scripts and documentation
-  - *Export History* - View and open previously generated exports
-- **View JSON** - Inspect raw profile data
+  - *Run Scan* - Scan your system (auto-saves + generates installation files)
+  - *Saved Scans* - Browse saved scans, load them, or view installation files
+  - *View JSON Scan Data* - Inspect raw scan data as JSON
 - **Help** - This user manual
 
 ### Dashboard
@@ -614,11 +593,11 @@ The main dashboard shows all discovered items in a single scrollable table:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  MacDitto  Dashboard  Scan▼  Profiles▼  Export▼  View JSON  Help    │
+│  MacDitto  Dashboard  Scan▼  Help                                    │
 │─────────────────────────────────────────────────────────────────────│
 │  Mac Configuration                                                  │
 │  Machine: Steve's MacBook Air   Scanned: 2026-02-17 10:00          │
-│  💡 Export Guide: chmod +x install.sh && ./install.sh              │
+│  Auto-saved: Scan data + install files saved. [Regenerate Files]   │
 │─────────────────────────────────────────────────────────────────────│
 │  Summary                                                            │
 │  [ 42 Brew Pkgs ] [ 18 Cask Apps ] [ 67 Apps ] [ 12 Ext ] [ 8 Prefs ]│
@@ -627,15 +606,15 @@ The main dashboard shows all discovered items in a single scrollable table:
 │─────────────────────────────────────────────────────────────────────│
 │  Installed Items                              🔍 Search apps...      │
 │  Legend: 📌 = In Dock   ▶️ = Starts at Login                        │
-│  ┌────────┬─────────────┬──────────────┬───────────┬───────┬──────┐ │
-│  │ Export │ Category    │ Name         │ Inst. Mth │ Cmd   │ Flgs │ │
-│  ├────────┼─────────────┼──────────────┼───────────┼───────┼──────┤ │
-│  │   ☑   │ Development │ IntelliJ IDEA│ manual    │ —     │ 📌   │ │
-│  │   ☑   │             │ Docker       │ cask      │ brew… │ 📌▶️ │ │
-│  │   ☑   │             │ git          │ brew      │ brew… │  —   │ │
-│  │   ☑   │ Browsers    │ Brave Browser│ cask      │ brew… │ 📌   │ │
-│  │   ☐   │ Utilities   │ python@3.9   │ brew      │ brew… │  —   │ │
-│  └────────┴─────────────┴──────────────┴───────────┴───────┴──────┘ │
+│  ┌────────┬─────────────┬──────────────┬───────────┬──────────────┬──────┐│
+│  │Include │ Category ↕  │ Name ↕       │Method ↕   │ Location ↕   │Flags↕││
+│  ├────────┼─────────────┼──────────────┼───────────┼──────────────┼──────┤│
+│  │   ☑   │ Development │ IntelliJ IDEA│ manual    │ /Applications│ 📌   ││
+│  │   ☑   │             │ Docker       │ cask      │ /Applications│ 📌▶️ ││
+│  │   ☑   │             │ git          │ brew      │ brew         │  —   ││
+│  │   ☑   │ Browsers    │ Brave Browser│ cask      │ /Applications│ 📌   ││
+│  │   ☐   │ Utilities   │ python@3.9   │ brew      │ brew         │  —   ││
+│  └────────┴─────────────┴──────────────┴───────────┴──────────────┴──────┘│
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -657,13 +636,16 @@ All installed items appear in one flat, category-sorted table with these columns
 
 | Column | Description |
 |--------|-------------|
-| **Export** | Checkbox — uncheck to exclude from export |
+| **Include** | Checkbox — uncheck to exclude from installation files |
 | **Category** | Badge shown on the first row of each category group |
 | **Name** | App or package name |
 | **Description** | Short description (from Homebrew metadata where available) |
 | **Install Method** | `brew`, `cask`, or `manual` |
+| **Location** | Installation path (e.g., `/Applications`, `brew`) |
 | **Install Command** | Ready-to-run command (e.g., `brew install git`) |
 | **Flags** | 📌 if in Dock, ▶️ if starts at login |
+
+**Sortable columns:** Click any column header (Category, Name, Install Method, Location, Flags) to sort ascending or descending.
 
 Use the **Search** box to filter items by name in real time.
 
@@ -679,13 +661,10 @@ The collapsible **Setup Notes** section lets you write free-form markdown notes 
 
 | Action | What it does |
 |--------|-------------|
-| **Run Scan** | Scans your Mac; shows a step-by-step progress modal |
-| **Scan History** | Opens a modal listing past scans you can inspect |
-| **Load Profile** | Opens a modal to browse and load a saved profile |
-| **Save Profile** | Prompts for an optional name, then saves a JSON snapshot |
-| **Export Files** | Generates install scripts in `output/export_TIMESTAMP/` |
-| **Export History** | Opens a modal listing past exports with clickable file links |
-| **View JSON** | Opens raw profile JSON in the browser |
+| **Run Scan** | Scans your Mac; auto-saves scan + generates installation files |
+| **Saved Scans** | Opens a modal listing all saved scans with installation file links |
+| **View JSON Scan Data** | Opens raw scan JSON in the browser (under Scan menu) |
+| **Regenerate Files** | (Dashboard button) Regenerates installation files after toggling items |
 
 ---
 
@@ -703,22 +682,21 @@ The collapsible **Setup Notes** section lets you write free-form markdown notes 
    python3 -m macditto.app
 
    # In browser:
-   # 1. Click Scan > Run Scan
+   # 1. Click Scan > Run Scan (auto-saves + generates install files)
    # 2. Review items in the table, uncheck anything you don't want
-   # 3. Click Profiles > Save Profile (name: "new-mac-setup")
-   # 4. Click Export > Export Files
-   # 5. Commit to Git or copy to USB
+   # 3. Click "Regenerate Files" to update installation files
+   # 4. Commit to Git or copy to USB
    ```
 
 2. **Transfer files:**
    ```bash
    # Option 1: Git
-   git add output/export_*/
-   git commit -m "New Mac setup export"
+   git add scans/scan_*/
+   git commit -m "New Mac setup scan"
    git push
 
    # Option 2: USB/AirDrop
-   # Copy entire MacDitto folder
+   # Copy the scan directory
    ```
 
 3. **On new Mac:**
@@ -728,7 +706,7 @@ The collapsible **Setup Notes** section lets you write free-form markdown notes 
 
    # Get MacDitto files
    git clone https://github.com/yourusername/MacDitto.git
-   cd MacDitto/output/export_YYYYMMDD_HHMMSS/
+   cd MacDitto/scans/scan_MACHINENAME_YYYYMMDD_HHMMSS/
 
    # Run install script
    chmod +x install.sh
@@ -768,8 +746,7 @@ The collapsible **Setup Notes** section lets you write free-form markdown notes 
 
 # Or run manually each month:
 python3 -m macditto.app
-# Click Scan > Run Scan
-# Click Profiles > Save Profile with name like "monthly-2026-02"
+# Click Scan > Run Scan (auto-saves as scan_MachineName_YYYYMMDD_HHMMSS)
 
 # Compare with last month:
 # Select profiles: monthly-2026-01 vs monthly-2026-02
@@ -842,18 +819,16 @@ MacDitto/
 │   └── static/            # CSS, JavaScript, images
 │       ├── style.css      # Application styling
 │       └── app.js         # Client-side JavaScript
-├── profiles/              # Saved scan profiles (JSON)
+├── scans/                 # Auto-saved scans with installation files
 │   ├── .gitkeep
-│   └── macditto_*.json    # Timestamped profile files
-├── output/                # Generated export files
-│   ├── .gitkeep
-│   └── export_*/          # Timestamped export directories
+│   ├── scan_history.json  # Unified scan history
+│   └── scan_*/            # Timestamped scan directories
+│       ├── saved_scan.json     # Complete scan data
 │       ├── Brewfile            # Homebrew bundle file
 │       ├── install.sh          # Automated install script
 │       ├── MANUAL_STEPS.md     # Manual installation checklist
 │       ├── SETUP_NOTES.md      # Personal setup notes
-│       ├── SOFTWARE_CATALOG.md # Software catalog with descriptions
-│       └── macditto_config.json # Full configuration
+│       └── SOFTWARE_CATALOG.md # Software catalog with descriptions
 ├── tests/                 # Test suite
 │   ├── __init__.py
 │   ├── test_scanner.py    # Scanner module tests
@@ -1099,54 +1074,37 @@ cat ~/.gitconfig
 python3 scan.py
 
 # Compare timestamps
-ls -ltr profiles/
+ls -ltr scans/
 
 # Use most recent scan
 ```
 
 ---
 
-## Understanding Save vs Export
+## Understanding Saved Scans
 
-### Save Profile
+### What Happens When You Scan
 
-**What it does:** Creates a JSON snapshot of your current scan
+Every scan automatically:
+1. Captures your full Mac configuration
+2. Saves scan data as `saved_scan.json`
+3. Generates all installation files (Brewfile, install.sh, etc.)
+4. Records the scan in history
 
-**Use case:** Track your environment over time, compare changes
+**Output:** All files saved in `scans/scan_{MachineName}_{TIMESTAMP}/`
 
-**Output:** Single JSON file in `profiles/` directory
-
-**Example:** `profiles/macditto_20260215_143022.json`
-
-**When to use:**
-- After each scan to track changes
-- Before major system updates
+**When to scan:**
+- Before setting up a new Mac
 - Monthly/quarterly for historical tracking
+- Before major system updates
+
+### Regenerating Installation Files
+
+After loading a saved scan, you can toggle items on/off in the dashboard. Click **"Regenerate Files"** to update the installation files with your changes.
 
 ---
 
-### Export
-
-**What it does:** Generates installation scripts for a NEW Mac
-
-**Use case:** Setting up a new machine, sharing team environment
-
-**Output:** Multiple files in `output/export_*/` directory:
-- `Brewfile` - Homebrew packages to install
-- `install.sh` - Automated installation script
-- `MANUAL_STEPS.md` - Checklist for manual installations
-- `SETUP_NOTES.md` - Your personal setup notes
-- `SOFTWARE_CATALOG.md` - Catalog of all software with descriptions
-- `macditto_config.json` - Full configuration backup
-
-**When to use:**
-- Buying a new Mac
-- Reinstalling macOS
-- Sharing dev environment with team
-
----
-
-### How to Use Exported Scripts
+### How to Use Installation Files
 
 **On the NEW Mac:**
 
@@ -1154,10 +1112,10 @@ ls -ltr profiles/
 # 1. Install Homebrew (if not already installed)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# 2. Transfer exported files (via Git, USB, or AirDrop)
+# 2. Transfer scan files (via Git, USB, or AirDrop)
 # If using Git:
 git clone https://github.com/yourusername/MacDitto.git
-cd MacDitto/output/export_YYYYMMDD_HHMMSS/
+cd MacDitto/scans/scan_MachineName_YYYYMMDD_HHMMSS/
 
 # 3. Run the install script
 chmod +x install.sh
@@ -1194,7 +1152,7 @@ A: Yes, but some casks may have architecture-specific versions. MacDitto will at
 
 ---
 
-**Q: Is my personal data safe in MacDitto profiles?**
+**Q: Is my personal data safe in MacDitto scans?**
 
 A: MacDitto captures configuration files but excludes:
 - Passwords
@@ -1261,12 +1219,12 @@ pip3 install -r requirements.txt
 
 **Q: Can MacDitto handle multiple Macs?**
 
-A: Yes! Create separate profiles for each Mac:
+A: Yes! Each scan auto-saves with the machine name:
 ```bash
-# Save with descriptive names
-macbook-air-work_20260215.json
-macbook-pro-personal_20260215.json
-imac-studio_20260215.json
+# Scans are auto-named per machine
+scans/scan_MacBookAir_20260215_100000/
+scans/scan_MacBookPro_20260215_143022/
+scans/scan_iMacStudio_20260215_160000/
 ```
 
 ---
@@ -1381,8 +1339,8 @@ SOFTWARE.
 - Initial release
 - Scanner module complete
 - Flask web interface
-- Profile save/load
-- Export functionality
+- Auto-saved scans with installation files
+- Sortable dashboard with Location column
 - 61 tests, 100% passing
 
 ---
@@ -1403,4 +1361,4 @@ SOFTWARE.
 
 ---
 
-**Last Updated:** 2026-02-17
+**Last Updated:** 2026-02-18

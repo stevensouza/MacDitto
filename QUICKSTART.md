@@ -28,9 +28,10 @@ http://localhost:5000
 
 ## Step 4: Run Your First Scan
 
-1. Click the **"Scan"** button in the navigation bar
+1. Click **Scan > Run Scan** in the navigation bar
 2. Wait 10-30 seconds for the scan to complete
 3. View your Mac's configuration on the dashboard
+4. Scan data and installation files are auto-saved!
 
 ## What You'll See
 
@@ -38,51 +39,55 @@ http://localhost:5000
 - **Category Sections** organizing items by type (Development, Browsers, etc.)
 - **Item Details** with install methods and status flags (📌 in Dock, ▶️ starts on login)
 - **Enable/Disable Checkboxes** for each item
+- **Regenerate Files** button to update installation files after toggling items
 
 ## Common Tasks
 
-### Save a Profile Snapshot
+### Load a Saved Scan
 
 ```
-Click "Save" → Enter optional name → Click "Save"
+Click "Scan" > "Saved Scans" > Click on a scan row
 ```
 
-Profiles are saved in `profiles/` directory.
+Scans are auto-saved in `scans/` directory.
 
-### Load a Saved Profile
+### Regenerate Installation Files
 
+After toggling items on/off:
 ```
-Click "Profiles" → Click on a profile name
-```
-
-### Export Install Scripts
-
-```
-Click "Export"
+Click "Regenerate Files" button in the dashboard banner
 ```
 
-Files are generated in `output/export_TIMESTAMP/`:
+### View Installation Files
+
+```
+Click "Scan" > "Saved Scans" > Click file buttons (Brew, install.sh, etc.)
+```
+
+Each saved scan includes:
+- `saved_scan.json` - Complete scan data
 - `Brewfile` - Homebrew packages
 - `install.sh` - Automated install script
 - `MANUAL_STEPS.md` - Manual instructions
-- `macditto_config.json` - Full config
+- `SETUP_NOTES.md` - Your personal notes
+- `SOFTWARE_CATALOG.md` - Software catalog
 
-### Compare Two Profiles
+### Compare Two Scans
 
 ```
-Navigate to: /diff/profile1.json/profile2.json
+Navigate to: /diff/scan_dir1/scan_dir2
 ```
 
-Shows what changed between profiles.
+Shows what changed between scans.
 
 ## For New Mac Setup
 
 ### On your current Mac:
 
-1. Run MacDitto scan
+1. Run MacDitto scan (auto-saves everything)
 2. Review and disable unwanted items
-3. Click "Export"
-4. Commit `output/` directory or copy to USB
+3. Click "Regenerate Files" to update
+4. Commit `scans/` directory or copy to USB
 
 ### On your new Mac:
 
@@ -100,7 +105,7 @@ Shows what changed between profiles.
 
 3. Run the install script:
    ```bash
-   cd output/export_TIMESTAMP/
+   cd scans/scan_MachineName_YYYYMMDD_HHMMSS/
    chmod +x install.sh
    ./install.sh
    ```
@@ -137,8 +142,6 @@ pytest tests/ -v
 # Run with coverage
 pytest tests/ --cov=macditto
 ```
-
-All 76 tests should pass.
 
 ## Need Help?
 

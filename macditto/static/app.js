@@ -79,7 +79,7 @@ function connectToScanProgress() {
                 showToast('Scan failed: ' + progress.error, 'error');
             } else {
                 // Success
-                showToast('Scan completed successfully!', 'success');
+                showToast('Scan completed and saved!', 'success');
                 setTimeout(() => {
                     document.getElementById('scanProgressModal').classList.remove('show');
                     window.location.reload();
@@ -115,141 +115,14 @@ function formatDuration(seconds) {
     }
 }
 
-// Save profile modal
-function saveProfile() {
-    document.getElementById('saveModal').classList.add('show');
-}
-
-function closeSaveModal() {
-    document.getElementById('saveModal').classList.remove('show');
-}
-
-function confirmSave() {
-    const profileName = document.getElementById('profileName').value;
-
-    fetch('/save', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            name: profileName
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const message = `${data.message}\n📁 Saved to: ${data.filepath}`;
-            showToast(message, 'success');
-            // Also log the full path to console for easy copying
-            console.log('Profile saved to:', data.filepath);
-            closeSaveModal();
-            document.getElementById('profileName').value = '';
-        } else {
-            showToast('Save failed: ' + data.error, 'error');
-        }
-    })
-    .catch(error => {
-        showToast('Error saving profile', 'error');
-        console.error('Error:', error);
-    });
-}
-
-// Show profiles modal
-function showProfiles() {
-    fetch('/profiles')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                displayProfiles(data.profiles);
-                document.getElementById('profileModal').classList.add('show');
-            } else {
-                showToast('Error loading profiles', 'error');
-            }
-        })
-        .catch(error => {
-            showToast('Error loading profiles', 'error');
-            console.error('Error:', error);
-        });
-}
-
-function displayProfiles(profiles) {
-    const profileList = document.getElementById('profileList');
-
-    if (profiles.length === 0) {
-        profileList.innerHTML = '<p>No saved profiles found.</p>';
-        return;
-    }
-
-    profileList.innerHTML = profiles.map(profile => `
-        <div class="profile-item" onclick="loadProfile('${profile.name}')">
-            <h4>${profile.name}</h4>
-            <small>Modified: ${new Date(profile.modified).toLocaleString()}</small>
-            <small> | Size: ${formatBytes(profile.size)}</small>
-        </div>
-    `).join('');
-}
-
-function closeProfileModal() {
-    document.getElementById('profileModal').classList.remove('show');
-}
-
-function loadProfile(profileName) {
-    window.location.href = `/load/${profileName}`;
-}
-
-// Export profile
-function exportProfile() {
-    showToast('Generating export files...', 'info');
-
-    fetch('/export')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast('Export completed! View in Export History.', 'success');
-                console.log('Export location:', data.export_dir);
-                console.log('Files:', data.files);
-
-                // Auto-open export history modal after 1 second
-                setTimeout(() => {
-                    showExportHistory();
-                }, 1000);
-            } else {
-                showToast('Export failed: ' + data.error, 'error');
-            }
-        })
-        .catch(error => {
-            showToast('Error exporting profile', 'error');
-            console.error('Error:', error);
-        });
-}
-
-// Show export history modal
-function showExportHistory() {
-    fetch('/export_history')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                displayExportHistory(data.exports);
-                document.getElementById('exportHistoryModal').classList.add('show');
-            } else {
-                showToast('Error loading export history', 'error');
-            }
-        })
-        .catch(error => {
-            showToast('Error loading export history', 'error');
-            console.error('Error:', error);
-        });
-}
-
+// File button helper
 function createFileButton(name, path) {
     const iconMap = {
         'install_script': '⚡',
         'brewfile': '🍺',
         'manual_steps': '📋',
         'setup_notes': '📝',
-        'software_catalog': '📚',
-        'config': '⚙️'
+        'software_catalog': '📚'
     };
 
     const nameMap = {
@@ -257,8 +130,7 @@ function createFileButton(name, path) {
         'install_script': 'install.sh',
         'manual_steps': 'Manual',
         'setup_notes': 'Notes',
-        'software_catalog': 'Catalog',
-        'config': 'Config'
+        'software_catalog': 'Catalog'
     };
 
     const fullNameMap = {
@@ -266,8 +138,7 @@ function createFileButton(name, path) {
         'install_script': 'install.sh',
         'manual_steps': 'MANUAL_STEPS.md',
         'setup_notes': 'SETUP_NOTES.md',
-        'software_catalog': 'SOFTWARE_CATALOG.md',
-        'config': 'macditto_config.json'
+        'software_catalog': 'SOFTWARE_CATALOG.md'
     };
 
     const icon = iconMap[name] || '📄';
@@ -303,100 +174,32 @@ function createFileButton(name, path) {
     return btn;
 }
 
-function displayExportHistory(exports) {
-    const historyList = document.getElementById('exportHistoryList');
-
-    if (exports.length === 0) {
-        historyList.innerHTML = '<p style="color: var(--text-tertiary); text-align: center; padding: 2rem;">No exports yet. Click "Export" to create one.</p>';
-        return;
-    }
-
-    // Build table using innerHTML for clean rendering
-    let tableHTML = `
-        <table style="width: 100%; border-collapse: collapse; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 10px;">
-            <thead>
-                <tr>
-                    <th style="padding: 0.75rem; text-align: center; border-bottom: 1px solid var(--border-subtle);">#</th>
-                    <th style="padding: 0.75rem; border-bottom: 1px solid var(--border-subtle);">Export Name</th>
-                    <th style="padding: 0.75rem; border-bottom: 1px solid var(--border-subtle);">Date</th>
-                    <th style="padding: 0.75rem; border-bottom: 1px solid var(--border-subtle);">Machine</th>
-                    <th style="padding: 0.75rem; border-bottom: 1px solid var(--border-subtle);">Location</th>
-                    <th style="padding: 0.75rem; border-bottom: 1px solid var(--border-subtle);">Files</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    exports.forEach((exp, index) => {
-        const rowNumber = exports.length - index;
-        const date = new Date(exp.export_date);
-        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
-        tableHTML += `
-            <tr>
-                <td style="padding: 0.75rem; text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--cyan-bright);">${rowNumber}</td>
-                <td style="padding: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">${exp.export_dirname}</td>
-                <td style="padding: 0.75rem; font-size: 0.8rem; color: var(--text-secondary);">${formattedDate}</td>
-                <td style="padding: 0.75rem; font-size: 0.85rem;">${exp.machine_name}</td>
-                <td style="padding: 0.75rem; max-width: 400px; overflow: hidden; text-overflow: ellipsis;"><code style="font-size: 0.7rem;">${exp.export_dir}</code></td>
-                <td style="padding: 0.75rem;" id="files-${rowNumber}"></td>
-            </tr>
-        `;
-    });
-
-    tableHTML += `
-            </tbody>
-        </table>
-    `;
-
-    historyList.innerHTML = tableHTML;
-
-    // Now add buttons using DOM manipulation
-    exports.forEach((exp, index) => {
-        const rowNumber = exports.length - index;
-        const filesCell = document.getElementById(`files-${rowNumber}`);
-        if (filesCell && exp.files) {
-            const buttonContainer = document.createElement('div');
-            buttonContainer.style.cssText = 'display: flex; gap: 0.4rem; flex-wrap: wrap;';
-            Object.entries(exp.files).forEach(([name, path]) => {
-                buttonContainer.appendChild(createFileButton(name, path));
-            });
-            filesCell.appendChild(buttonContainer);
-        }
-    });
-}
-
-function closeExportHistoryModal() {
-    document.getElementById('exportHistoryModal').classList.remove('show');
-}
-
-// Show scan history modal
-function showScanHistory() {
-    fetch('/scan_history')
+// Show saved scans modal
+function showSavedScans() {
+    fetch('/saved_scans')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                displayScanHistory(data.scans);
-                document.getElementById('scanHistoryModal').classList.add('show');
+                displaySavedScans(data.scans);
+                document.getElementById('savedScansModal').classList.add('show');
             } else {
-                showToast('Error loading scan history', 'error');
+                showToast('Error loading saved scans', 'error');
             }
         })
         .catch(error => {
-            showToast('Error loading scan history', 'error');
+            showToast('Error loading saved scans', 'error');
             console.error('Error:', error);
         });
 }
 
-function displayScanHistory(scans) {
-    const historyList = document.getElementById('scanHistoryList');
+function displaySavedScans(scans) {
+    const list = document.getElementById('savedScansList');
 
     if (scans.length === 0) {
-        historyList.innerHTML = '<p style="color: var(--text-tertiary); text-align: center; padding: 2rem;">No scans yet. Click "Scan" to create one.</p>';
+        list.innerHTML = '<p style="color: var(--text-tertiary); text-align: center; padding: 2rem;">No saved scans yet. Click "Run Scan" to create one.</p>';
         return;
     }
 
-    // Build table
     let tableHTML = `
         <table style="width: 100%; border-collapse: collapse; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 10px;">
             <thead>
@@ -405,8 +208,8 @@ function displayScanHistory(scans) {
                     <th style="padding: 0.75rem; border-bottom: 1px solid var(--border-subtle);">Date</th>
                     <th style="padding: 0.75rem; border-bottom: 1px solid var(--border-subtle);">Machine</th>
                     <th style="padding: 0.75rem; text-align: center; border-bottom: 1px solid var(--border-subtle);">Duration</th>
-                    <th style="padding: 0.75rem; border-bottom: 1px solid var(--border-subtle);">Items Found</th>
-                    <th style="padding: 0.75rem; text-align: center; border-bottom: 1px solid var(--border-subtle);">Status</th>
+                    <th style="padding: 0.75rem; border-bottom: 1px solid var(--border-subtle);">Items</th>
+                    <th style="padding: 0.75rem; border-bottom: 1px solid var(--border-subtle);">Installation Files</th>
                 </tr>
             </thead>
             <tbody>
@@ -417,6 +220,7 @@ function displayScanHistory(scans) {
         const date = new Date(scan.scan_date);
         const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         const duration = formatDuration(scan.duration_seconds);
+        const dirname = scan.scan_dirname;
 
         // Format item counts
         let itemsHTML = '';
@@ -434,22 +238,14 @@ function displayScanHistory(scans) {
             itemsHTML = '<span style="color: var(--text-tertiary);">N/A</span>';
         }
 
-        // Status badge
-        let statusHTML = '';
-        if (scan.status === 'completed') {
-            statusHTML = '<span style="color: var(--success); font-weight: 600;">✓ Completed</span>';
-        } else {
-            statusHTML = '<span style="color: var(--danger); font-weight: 600;">✕ Failed</span>';
-        }
-
         tableHTML += `
-            <tr>
+            <tr class="scan-row-clickable" onclick="loadSavedScan('${dirname}')" title="Click to load this scan into the dashboard" style="cursor: pointer;">
                 <td style="padding: 0.75rem; text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--cyan-bright);">${rowNumber}</td>
                 <td style="padding: 0.75rem; font-size: 0.8rem; color: var(--text-secondary);">${formattedDate}</td>
                 <td style="padding: 0.75rem; font-size: 0.85rem;">${scan.machine_name}</td>
                 <td style="padding: 0.75rem; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-secondary);">${duration}</td>
                 <td style="padding: 0.75rem;">${itemsHTML}</td>
-                <td style="padding: 0.75rem; text-align: center;">${statusHTML}</td>
+                <td style="padding: 0.75rem;" id="files-${rowNumber}" onclick="event.stopPropagation()"></td>
             </tr>
         `;
     });
@@ -459,11 +255,53 @@ function displayScanHistory(scans) {
         </table>
     `;
 
-    historyList.innerHTML = tableHTML;
+    list.innerHTML = tableHTML;
+
+    // Add file buttons using DOM manipulation
+    scans.forEach((scan, index) => {
+        const rowNumber = scans.length - index;
+        const filesCell = document.getElementById(`files-${rowNumber}`);
+        if (filesCell && scan.files) {
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = 'display: flex; gap: 0.4rem; flex-wrap: wrap;';
+            Object.entries(scan.files).forEach(([name, path]) => {
+                buttonContainer.appendChild(createFileButton(name, path));
+            });
+            filesCell.appendChild(buttonContainer);
+        }
+    });
 }
 
-function closeScanHistoryModal() {
-    document.getElementById('scanHistoryModal').classList.remove('show');
+function closeSavedScansModal() {
+    document.getElementById('savedScansModal').classList.remove('show');
+}
+
+function loadSavedScan(dirname) {
+    window.location.href = `/load_scan/${dirname}`;
+}
+
+// Regenerate installation files
+function regenerateFiles() {
+    showToast('Regenerating installation files...', 'info');
+
+    fetch('/regenerate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Installation files regenerated!', 'success');
+        } else {
+            showToast('Error: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showToast('Error regenerating files', 'error');
+        console.error('Error:', error);
+    });
 }
 
 // Utility functions
@@ -479,22 +317,10 @@ function formatBytes(bytes) {
 
 // Close modals on outside click
 window.onclick = function(event) {
-    const profileModal = document.getElementById('profileModal');
-    const saveModal = document.getElementById('saveModal');
-    const exportHistoryModal = document.getElementById('exportHistoryModal');
-    const scanHistoryModal = document.getElementById('scanHistoryModal');
+    const savedScansModal = document.getElementById('savedScansModal');
 
-    if (event.target === profileModal) {
-        closeProfileModal();
-    }
-    if (event.target === saveModal) {
-        closeSaveModal();
-    }
-    if (event.target === exportHistoryModal) {
-        closeExportHistoryModal();
-    }
-    if (event.target === scanHistoryModal) {
-        closeScanHistoryModal();
+    if (event.target === savedScansModal) {
+        closeSavedScansModal();
     }
 }
 
@@ -505,10 +331,7 @@ document.documentElement.style.scrollBehavior = 'smooth';
 document.addEventListener('keydown', function(event) {
     // Escape key closes modals
     if (event.key === 'Escape') {
-        closeProfileModal();
-        closeSaveModal();
-        closeExportHistoryModal();
-        closeScanHistoryModal();
+        closeSavedScansModal();
     }
 
     // Ctrl/Cmd + K for search (if search box exists)

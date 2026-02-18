@@ -22,26 +22,33 @@ def client():
 
 def test_full_workflow_simulation(client, tmp_path):
     """Test simulated full workflow without actual scanning."""
+    import macditto.app as app_module
+    original_profile = app_module.current_profile
+    original_dirname = app_module.current_scan_dirname
+    app_module.current_profile = None
+    app_module.current_scan_dirname = None
+
     # 1. Dashboard should load even without profile
     response = client.get('/')
     assert response.status_code == 200
     assert b'MacDitto' in response.data
 
-    # 2. Check profiles list (should be empty initially)
-    response = client.get('/profiles')
+    # 2. Check saved scans list
+    response = client.get('/saved_scans')
     assert response.status_code == 200
     data = json.loads(response.data)
     assert data['success'] is True
 
-    # 3. Try to save without profile (should fail)
-    response = client.post('/save',
-                          data=json.dumps({"name": "test"}),
+    # 3. Try to regenerate without profile (should fail)
+    # Note: dashboard GET / may auto-load a scan from disk, so re-clear
+    app_module.current_profile = None
+    app_module.current_scan_dirname = None
+    response = client.post('/regenerate',
                           content_type='application/json')
     assert response.status_code == 400
 
-    # 4. Try to export without profile (should fail)
-    response = client.get('/export')
-    assert response.status_code == 400
+    app_module.current_profile = original_profile
+    app_module.current_scan_dirname = original_dirname
 
 
 def test_scanner_integration():

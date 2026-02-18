@@ -55,14 +55,14 @@ def test_index_route(client):
     assert response.status_code == 200
 
 
-def test_profiles_route(client):
-    """Test profiles list route."""
-    response = client.get('/profiles')
+def test_saved_scans_route(client):
+    """Test saved scans list route."""
+    response = client.get('/saved_scans')
     assert response.status_code == 200
 
     data = json.loads(response.data)
     assert 'success' in data
-    assert 'profiles' in data
+    assert 'scans' in data
 
 
 def test_organize_items_by_category(sample_profile):
@@ -107,21 +107,12 @@ def test_compute_diff():
     assert "git" in diff["common"]
 
 
-def test_save_profile_endpoint(client):
-    """Test save profile endpoint without actual profile."""
-    response = client.post('/save',
-                          data=json.dumps({"name": "test"}),
-                          content_type='application/json')
-
-    # Should fail because no profile is loaded
-    assert response.status_code == 400
-
-    data = json.loads(response.data)
-    assert data['success'] is False
-
-
 def test_toggle_item_endpoint(client):
     """Test toggle item endpoint without profile."""
+    import macditto.app as app_module
+    original = app_module.current_profile
+    app_module.current_profile = None
+
     response = client.post('/toggle_item',
                           data=json.dumps({
                               "item_type": "homebrew_formula",
@@ -136,22 +127,41 @@ def test_toggle_item_endpoint(client):
     data = json.loads(response.data)
     assert data['success'] is False
 
-
-def test_export_endpoint(client):
-    """Test export endpoint without profile."""
-    response = client.get('/export')
-
-    # Should fail because no profile is loaded
-    assert response.status_code == 400
-
-    data = json.loads(response.data)
-    assert data['success'] is False
+    app_module.current_profile = original
 
 
-def test_load_nonexistent_profile(client):
-    """Test loading a profile that doesn't exist."""
-    response = client.get('/load/nonexistent_profile.json')
+def test_load_scan_nonexistent(client):
+    """Test loading a saved scan that doesn't exist."""
+    response = client.get('/load_scan/nonexistent_scan_dir')
 
     data = json.loads(response.data)
     assert data['success'] is False
     assert response.status_code == 404
+
+
+def test_regenerate_no_profile(client):
+    """Test regenerate endpoint without profile."""
+    import macditto.app as app_module
+    # Ensure no profile loaded
+    original = app_module.current_profile
+    app_module.current_profile = None
+
+    response = client.post('/regenerate',
+                          content_type='application/json')
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data['success'] is False
+
+    # Restore
+    app_module.current_profile = original
+
+
+def test_scan_history_route(client):
+    """Test scan history route."""
+    response = client.get('/scan_history')
+    assert response.status_code == 200
+
+    data = json.loads(response.data)
+    assert 'success' in data
+    assert 'scans' in data

@@ -1,14 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}JSON Profile - MacDitto{% endblock %}
+{% block title %}Scan JSON - MacDitto{% endblock %}
 
 {% block content %}
 <div class="dashboard">
     <div class="header">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <h2>Profile JSON Data</h2>
-                <p style="color: #8e8e93; margin-top: 0.5rem;">
+                <h2>Scan JSON Data</h2>
+                <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+                    Raw scan data auto-generated when a scan is run.
+                </p>
+                <p style="color: var(--text-tertiary); margin-top: 0.25rem; font-size: 0.9rem;">
                     Machine: {{ profile.machine_name }} |
                     Scan Date: {{ profile.scan_date }}
                 </p>
@@ -62,7 +65,7 @@ function downloadJSON() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'macditto_profile_' + new Date().toISOString().split('T')[0] + '.json';
+    a.download = 'macditto_scan_' + new Date().toISOString().split('T')[0] + '.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

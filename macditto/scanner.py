@@ -215,38 +215,33 @@ class Scanner:
         """
         dock_items = []
 
-        success, stdout, _ = run_command(['defaults', 'read', 'com.apple.dock', 'persistent-apps'])
-        if success:
-            try:
-                # Parse the plist output
-                # Look for file-label values which contain app names
-                lines = stdout.split('\n')
-                for i, line in enumerate(lines):
-                    if 'file-label' in line and i + 1 < len(lines):
-                        # Extract app name from next line
-                        next_line = lines[i + 1].strip()
-                        if next_line:
-                            # Remove quotes and semicolon
-                            app_name = next_line.replace('"', '').replace(';', '').strip()
-                            if app_name:
-                                dock_items.append(app_name)
-            except Exception:
-                pass
+        # Use plist export for reliable parsing
+        try:
+            success, stdout, _ = run_command(['defaults', 'export', 'com.apple.dock', '-'])
+            if success:
+                plist = plistlib.loads(stdout.encode())
+                persistent_apps = plist.get('persistent-apps', [])
+                for app in persistent_apps:
+                    tile_data = app.get('tile-data', {})
+                    file_label = tile_data.get('file-label', '')
+                    if file_label:
+                        dock_items.append(file_label)
+        except Exception:
+            pass
 
-        # Alternative: parse as plist binary
+        # Fallback: parse text output from defaults read
         if not dock_items:
-            try:
-                success, stdout, _ = run_command(['defaults', 'export', 'com.apple.dock', '-'])
-                if success:
-                    plist = plistlib.loads(stdout.encode())
-                    persistent_apps = plist.get('persistent-apps', [])
-                    for app in persistent_apps:
-                        tile_data = app.get('tile-data', {})
-                        file_label = tile_data.get('file-label', '')
-                        if file_label:
-                            dock_items.append(file_label)
-            except Exception:
-                pass
+            success, stdout, _ = run_command(['defaults', 'read', 'com.apple.dock', 'persistent-apps'])
+            if success:
+                try:
+                    import re
+                    # Format is: "file-label" = "App Name"; or "file-label" = AppName;
+                    for match in re.finditer(r'"file-label"\s*=\s*"?([^";]+)"?\s*;', stdout):
+                        app_name = match.group(1).strip()
+                        if app_name:
+                            dock_items.append(app_name)
+                except Exception:
+                    pass
 
         return dock_items
 

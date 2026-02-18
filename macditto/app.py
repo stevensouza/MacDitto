@@ -1,10 +1,12 @@
 """
 Flask web application for MacDitto - Mac Environment Duplication Tool.
 
-Provides web interface for scanning, viewing, saving, and managing Mac configurations.
+Provides web interface for scanning, viewing, and managing Mac configurations.
+Every scan auto-saves and auto-generates installation files.
 """
 
 import os
+import re
 import json
 import time
 import threading
@@ -21,10 +23,9 @@ app.config['SECRET_KEY'] = 'macditto-dev-secret-key-change-in-production'
 
 # Global variables for current scan profile
 current_profile = None
-profiles_dir = Path(__file__).parent.parent / 'profiles'
-output_dir = Path(__file__).parent.parent / 'output'
-export_history_file = output_dir / 'export_history.json'
-scan_history_file = output_dir / 'scan_history.json'
+current_scan_dirname = None  # Track which scan dir is loaded
+scans_dir = Path(__file__).parent.parent / 'scans'
+scan_history_file = scans_dir / 'scan_history.json'
 
 # Global variables for scan tracking
 scan_in_progress = False
@@ -40,8 +41,7 @@ scan_progress = {
 scan_start_time = None
 
 # Ensure directories exist
-profiles_dir.mkdir(exist_ok=True)
-output_dir.mkdir(exist_ok=True)
+scans_dir.mkdir(exist_ok=True)
 
 
 # Disable caching for all responses (especially static files)
@@ -54,6 +54,57 @@ def add_no_cache_headers(response):
     return response
 
 
+def sanitize_machine_name(name):
+    """Sanitize machine name for use in directory names."""
+    # Remove apostrophes, then replace non-alphanumeric (except hyphens) with underscores
+    name = name.replace("'", "").replace("\u2019", "")
+    name = re.sub(r'[^a-zA-Z0-9\-]', '_', name)
+    # Collapse multiple underscores
+    name = re.sub(r'_+', '_', name).strip('_')
+    return name
+
+
+def create_scan_dir(machine_name, timestamp):
+    """Create and return scan directory path: scans/scan_{SafeMachineName}_{TIMESTAMP}/"""
+    safe_name = sanitize_machine_name(machine_name)
+    dirname = f"scan_{safe_name}_{timestamp}"
+    scan_dir = scans_dir / dirname
+    scan_dir.mkdir(parents=True, exist_ok=True)
+    return scan_dir, dirname
+
+
+def generate_install_files(profile, scan_dir):
+    """Generate all installation files in the given scan directory."""
+    files = {}
+
+    # Generate Brewfile
+    brewfile_path = scan_dir / 'Brewfile'
+    generate_brewfile(profile, brewfile_path)
+    files['brewfile'] = str(brewfile_path.absolute())
+
+    # Generate install.sh
+    install_script_path = scan_dir / 'install.sh'
+    generate_install_script(profile, install_script_path)
+    files['install_script'] = str(install_script_path.absolute())
+
+    # Generate MANUAL_STEPS.md
+    manual_steps_path = scan_dir / 'MANUAL_STEPS.md'
+    generate_manual_steps(profile, manual_steps_path)
+    files['manual_steps'] = str(manual_steps_path.absolute())
+
+    # Generate SETUP_NOTES.md
+    setup_notes_path = scan_dir / 'SETUP_NOTES.md'
+    generate_setup_notes(profile, setup_notes_path)
+    files['setup_notes'] = str(setup_notes_path.absolute())
+
+    # Generate SOFTWARE_CATALOG.md
+    software_catalog_path = scan_dir / 'SOFTWARE_CATALOG.md'
+    generate_software_catalog(profile, software_catalog_path)
+    files['software_catalog'] = str(software_catalog_path.absolute())
+
+    return files
+
+
 @app.route('/')
 def dashboard():
     """
@@ -61,16 +112,17 @@ def dashboard():
     """
     global current_profile
 
-    # Load most recent profile if current_profile is None
+    # Load most recent scan if current_profile is None
     if current_profile is None:
-        current_profile = load_most_recent_profile()
+        current_profile = load_most_recent_scan()
 
     if current_profile is None:
-        # No profile exists, show empty dashboard with scan button
+        # No scan exists, show empty dashboard with scan button
         return render_template('dashboard.html',
                              profile=None,
                              all_items=[],
-                             category_counts={})
+                             category_counts={},
+                             scan_files={})
 
     # Organize items by category (returns flat list sorted by category)
     all_items = organize_items_by_category(current_profile)
@@ -81,10 +133,26 @@ def dashboard():
         cat = item.get('category', 'Other')
         category_counts[cat] = category_counts.get(cat, 0) + 1
 
+    # Get installation file paths for the current scan
+    scan_files = {}
+    if current_scan_dirname:
+        scan_dir = scans_dir / current_scan_dirname
+        file_map = {
+            'brewfile': scan_dir / 'Brewfile',
+            'install_script': scan_dir / 'install.sh',
+            'manual_steps': scan_dir / 'MANUAL_STEPS.md',
+            'setup_notes': scan_dir / 'SETUP_NOTES.md',
+            'software_catalog': scan_dir / 'SOFTWARE_CATALOG.md',
+        }
+        for key, path in file_map.items():
+            if path.exists():
+                scan_files[key] = str(path.absolute())
+
     return render_template('dashboard.html',
                          profile=current_profile,
                          all_items=all_items,
-                         category_counts=category_counts)
+                         category_counts=category_counts,
+                         scan_files=scan_files)
 
 
 @app.route('/scan', methods=['POST'])
@@ -129,8 +197,9 @@ def scan():
 def run_scan_background():
     """
     Run scan in background thread with progress tracking.
+    Auto-saves scan and generates installation files.
     """
-    global current_profile, scan_in_progress, scan_progress, scan_start_time
+    global current_profile, current_scan_dirname, scan_in_progress, scan_progress, scan_start_time
 
     def progress_callback(step_name, step_number, total_steps, item_counts):
         """Update global scan progress."""
@@ -152,12 +221,23 @@ def run_scan_background():
         # Calculate duration
         duration = time.time() - scan_start_time
 
+        # Auto-save: create scan directory and save everything
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        scan_dir, scan_dirname = create_scan_dir(current_profile.machine_name, timestamp)
+        current_scan_dirname = scan_dirname
+
+        # Save scan data (was profile JSON)
+        saved_scan_path = scan_dir / 'saved_scan.json'
+        current_profile.save(str(saved_scan_path))
+
+        # Generate all installation files
+        files = generate_install_files(current_profile, scan_dir)
+
         # Mark as completed
         scan_progress['completed'] = True
         scan_progress['percentage'] = 100
 
         # Save to scan history
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         scan_record = {
             'timestamp': timestamp,
             'scan_date': current_profile.scan_date,
@@ -165,7 +245,10 @@ def run_scan_background():
             'duration_seconds': round(duration, 2),
             'machine_name': current_profile.machine_name,
             'item_counts': scan_progress['item_counts'].copy(),
-            'status': 'completed'
+            'status': 'completed',
+            'scan_dir': str(scan_dir.absolute()),
+            'scan_dirname': scan_dirname,
+            'files': files
         }
         save_scan_history(scan_record)
 
@@ -218,92 +301,98 @@ def scan_progress_stream():
     return Response(generate(), mimetype='text/event-stream')
 
 
-@app.route('/save', methods=['POST'])
-def save_profile():
+@app.route('/saved_scans')
+def saved_scans():
     """
-    Save current profile with name.
-    Accepts JSON: {"name": "profile_name"} (optional)
+    Get saved scans list.
+    Returns completed scans that still have existing directories.
     """
-    global current_profile
+    try:
+        history = load_scan_history()
+        # Filter to completed scans with existing directories
+        valid_scans = []
+        for scan in history:
+            if scan.get('status') == 'completed' and scan.get('scan_dir'):
+                scan_dir = Path(scan['scan_dir'])
+                if scan_dir.exists():
+                    valid_scans.append(scan)
+        return jsonify({
+            'success': True,
+            'scans': valid_scans
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/load_scan/<scan_dirname>')
+def load_scan(scan_dirname):
+    """
+    Load a saved scan by directory name.
+    """
+    global current_profile, current_scan_dirname
+
+    try:
+        scan_path = scans_dir / scan_dirname / 'saved_scan.json'
+        if not scan_path.exists():
+            return jsonify({
+                'success': False,
+                'error': f'Saved scan not found: {scan_dirname}'
+            }), 404
+
+        current_profile = ScanProfile.load(str(scan_path))
+        current_scan_dirname = scan_dirname
+
+        return redirect(url_for('dashboard'))
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/regenerate', methods=['POST'])
+def regenerate():
+    """
+    Regenerate installation files for the current scan after user toggles items.
+    Re-saves saved_scan.json and regenerates all 5 installation files.
+    """
+    global current_profile, current_scan_dirname
 
     if current_profile is None:
         return jsonify({
             'success': False,
-            'error': 'No profile to save. Please run a scan first.'
+            'error': 'No scan loaded. Please run a scan first.'
+        }), 400
+
+    if current_scan_dirname is None:
+        return jsonify({
+            'success': False,
+            'error': 'No saved scan directory associated. Please run a new scan.'
         }), 400
 
     try:
-        data = request.get_json() or {}
-        profile_name = data.get('name', '')
-
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        if profile_name:
-            filename = f"{profile_name}_{timestamp}.json"
-        else:
-            filename = f"macditto_{timestamp}.json"
-
-        filepath = profiles_dir / filename
-        current_profile.save(str(filepath))
-
-        return jsonify({
-            'success': True,
-            'message': f'Profile saved successfully!',
-            'filename': filename,
-            'filepath': str(filepath.absolute())
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-
-@app.route('/profiles')
-def list_profiles():
-    """
-    List all saved profiles.
-    Returns JSON with profile list.
-    """
-    try:
-        profiles = []
-        for filepath in sorted(profiles_dir.glob('*.json'), reverse=True):
-            stat = filepath.stat()
-            profiles.append({
-                'name': filepath.name,
-                'size': stat.st_size,
-                'modified': datetime.fromtimestamp(stat.st_mtime).isoformat()
-            })
-
-        return jsonify({
-            'success': True,
-            'profiles': profiles
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-
-@app.route('/load/<profile_name>')
-def load_profile(profile_name):
-    """
-    Load saved profile by name.
-    """
-    global current_profile
-
-    try:
-        filepath = profiles_dir / profile_name
-        if not filepath.exists():
+        scan_dir = scans_dir / current_scan_dirname
+        if not scan_dir.exists():
             return jsonify({
                 'success': False,
-                'error': f'Profile {profile_name} not found'
+                'error': 'Scan directory not found. Please run a new scan.'
             }), 404
 
-        current_profile = ScanProfile.load(str(filepath))
+        # Re-save scan data
+        saved_scan_path = scan_dir / 'saved_scan.json'
+        current_profile.save(str(saved_scan_path))
 
-        return redirect(url_for('dashboard'))
+        # Regenerate all installation files
+        files = generate_install_files(current_profile, scan_dir)
+
+        return jsonify({
+            'success': True,
+            'message': 'Installation files regenerated!',
+            'files': files
+        })
     except Exception as e:
         return jsonify({
             'success': False,
@@ -402,29 +491,29 @@ def get_notes():
     })
 
 
-@app.route('/diff/<profile1>/<profile2>')
-def diff_profiles(profile1, profile2):
+@app.route('/diff/<scan_dir1>/<scan_dir2>')
+def diff_scans(scan_dir1, scan_dir2):
     """
-    Show differences between two profiles.
+    Show differences between two saved scans.
     """
     try:
-        profile1_path = profiles_dir / profile1
-        profile2_path = profiles_dir / profile2
+        path1 = scans_dir / scan_dir1 / 'saved_scan.json'
+        path2 = scans_dir / scan_dir2 / 'saved_scan.json'
 
-        if not profile1_path.exists() or not profile2_path.exists():
+        if not path1.exists() or not path2.exists():
             return jsonify({
                 'success': False,
-                'error': 'One or both profiles not found'
+                'error': 'One or both saved scans not found'
             }), 404
 
-        p1 = ScanProfile.load(str(profile1_path))
-        p2 = ScanProfile.load(str(profile2_path))
+        p1 = ScanProfile.load(str(path1))
+        p2 = ScanProfile.load(str(path2))
 
         diff = compute_diff(p1, p2)
 
         return render_template('diff.html',
-                             profile1=profile1,
-                             profile2=profile2,
+                             profile1=scan_dir1,
+                             profile2=scan_dir2,
                              p1=p1,
                              p2=p2,
                              diff=diff)
@@ -435,74 +524,17 @@ def diff_profiles(profile1, profile2):
         }), 500
 
 
-@app.route('/export')
-def export():
+@app.route('/scan_history')
+def scan_history():
     """
-    Generate install scripts and manual instructions.
-    Returns downloadable files.
+    Get scan history.
+    Returns JSON list of past scans.
     """
-    global current_profile
-
-    if current_profile is None:
-        return jsonify({
-            'success': False,
-            'error': 'No profile to export. Please run a scan first.'
-        }), 400
-
     try:
-        # Generate export files
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        export_dir = output_dir / f"export_{timestamp}"
-        export_dir.mkdir(exist_ok=True)
-
-        # Generate Brewfile
-        brewfile_path = export_dir / 'Brewfile'
-        generate_brewfile(current_profile, brewfile_path)
-
-        # Generate install.sh
-        install_script_path = export_dir / 'install.sh'
-        generate_install_script(current_profile, install_script_path)
-
-        # Generate MANUAL_STEPS.md
-        manual_steps_path = export_dir / 'MANUAL_STEPS.md'
-        generate_manual_steps(current_profile, manual_steps_path)
-
-        # Generate SETUP_NOTES.md
-        setup_notes_path = export_dir / 'SETUP_NOTES.md'
-        generate_setup_notes(current_profile, setup_notes_path)
-
-        # Generate SOFTWARE_CATALOG.md
-        software_catalog_path = export_dir / 'SOFTWARE_CATALOG.md'
-        generate_software_catalog(current_profile, software_catalog_path)
-
-        # Save profile config
-        config_path = export_dir / 'macditto_config.json'
-        current_profile.save(str(config_path))
-
-        # Save to export history
-        export_record = {
-            'timestamp': timestamp,
-            'export_date': datetime.now().isoformat(),
-            'machine_name': current_profile.machine_name,
-            'export_dir': str(export_dir.absolute()),
-            'export_dirname': f'export_{timestamp}',
-            'files': {
-                'brewfile': str(brewfile_path.absolute()),
-                'install_script': str(install_script_path.absolute()),
-                'manual_steps': str(manual_steps_path.absolute()),
-                'setup_notes': str(setup_notes_path.absolute()),
-                'software_catalog': str(software_catalog_path.absolute()),
-                'config': str(config_path.absolute())
-            }
-        }
-        save_export_history(export_record)
-
+        history = load_scan_history()
         return jsonify({
             'success': True,
-            'message': f'Export completed successfully!',
-            'export_dir': str(export_dir.absolute()),
-            'export_dirname': f'export_{timestamp}',
-            'files': export_record['files']
+            'scans': history
         })
     except Exception as e:
         return jsonify({
@@ -545,7 +577,7 @@ def view_json():
     if current_profile is None:
         return jsonify({
             'success': False,
-            'error': 'No profile loaded. Please run a scan first.'
+            'error': 'No scan loaded. Please run a scan first.'
         }), 400
 
     try:
@@ -575,44 +607,6 @@ def api_profile_json():
         }), 400
 
     return jsonify(current_profile.to_dict())
-
-
-@app.route('/export_history')
-def export_history():
-    """
-    Get export history.
-    Returns JSON list of past exports.
-    """
-    try:
-        history = load_export_history()
-        return jsonify({
-            'success': True,
-            'exports': history
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-
-@app.route('/scan_history')
-def scan_history():
-    """
-    Get scan history.
-    Returns JSON list of past scans.
-    """
-    try:
-        history = load_scan_history()
-        return jsonify({
-            'success': True,
-            'scans': history
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 
 
 @app.route('/open_file')
@@ -709,14 +703,16 @@ def get_item_list(profile, item_type):
     return None
 
 
-def load_most_recent_profile():
-    """Load the most recently modified profile."""
+def load_most_recent_scan():
+    """Load the most recently saved scan."""
+    global current_scan_dirname
     try:
-        json_files = list(profiles_dir.glob('*.json'))
-        if not json_files:
+        scan_files = list(scans_dir.glob('*/saved_scan.json'))
+        if not scan_files:
             return None
 
-        most_recent = max(json_files, key=lambda p: p.stat().st_mtime)
+        most_recent = max(scan_files, key=lambda p: p.stat().st_mtime)
+        current_scan_dirname = most_recent.parent.name
         return ScanProfile.load(str(most_recent))
     except Exception:
         return None
@@ -989,30 +985,6 @@ Machine: {profile.machine_name}
         f.write(md)
 
 
-def save_export_history(export_record):
-    """Save export record to history file."""
-    history = load_export_history()
-    history.insert(0, export_record)  # Add to beginning (most recent first)
-
-    # Keep only last 50 exports
-    history = history[:50]
-
-    with open(export_history_file, 'w') as f:
-        json.dump(history, f, indent=2)
-
-
-def load_export_history():
-    """Load export history from file."""
-    if not export_history_file.exists():
-        return []
-
-    try:
-        with open(export_history_file, 'r') as f:
-            return json.load(f)
-    except Exception:
-        return []
-
-
 def save_scan_history(scan_record):
     """Save scan record to history file."""
     history = load_scan_history()
@@ -1035,6 +1007,32 @@ def load_scan_history():
             return json.load(f)
     except Exception:
         return []
+
+
+def migrate_legacy_data():
+    """Migrate existing profiles/ and output/ data to scans/ directory."""
+    project_root = Path(__file__).parent.parent
+    profiles_dir = project_root / 'profiles'
+    output_dir = project_root / 'output'
+
+    # Migrate profiles
+    if profiles_dir.exists():
+        for json_file in profiles_dir.glob('*.json'):
+            try:
+                profile = ScanProfile.load(str(json_file))
+                # Create a scan dir from profile info
+                timestamp = json_file.stem.split('_')[-2] + '_' + json_file.stem.split('_')[-1] if '_' in json_file.stem else datetime.fromtimestamp(json_file.stat().st_mtime).strftime('%Y%m%d_%H%M%S')
+                machine_name = profile.machine_name or 'Unknown'
+                scan_dir, scan_dirname = create_scan_dir(machine_name, timestamp)
+
+                # Save as saved_scan.json
+                saved_scan_path = scan_dir / 'saved_scan.json'
+                if not saved_scan_path.exists():
+                    profile.save(str(saved_scan_path))
+                    # Generate install files
+                    generate_install_files(profile, scan_dir)
+            except Exception:
+                continue  # Skip files that can't be loaded
 
 
 if __name__ == '__main__':

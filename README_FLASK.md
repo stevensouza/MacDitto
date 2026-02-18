@@ -34,36 +34,30 @@ http://localhost:5000
 ### Dashboard
 - View all scanned items organized by category
 - See summary statistics (packages, apps, extensions, preferences)
+- **Sortable columns** — click any column header to sort ascending/descending
 - Enable/disable items for installation on target machine
-- View item properties (install method, dock status, login status)
+- View item properties (install method, location, dock status, login status)
+- **Regenerate Files** button to update installation files after changes
 
 ### Scan
-- Click "Scan" in the navigation to run a new environment scan
+- Click "Scan > Run Scan" to run a new environment scan
 - Scans all Homebrew packages, applications, browser extensions, and system preferences
+- Every scan auto-saves data and generates installation files
 - Results are displayed immediately on the dashboard
 
-### Save Profiles
-- Click "Save" to save the current scan as a dated profile
-- Optional: Provide a custom name for the profile
-- Profiles are saved in the `profiles/` directory as JSON files
+### Saved Scans
+- Click "Scan > Saved Scans" to browse all saved scans
+- Each scan includes installation files (Brewfile, install.sh, etc.)
+- Click a row to load a scan into the dashboard
+- Click file buttons to view individual installation files
 
-### Load Profiles
-- Click "Profiles" to view all saved profiles
-- Click on a profile to load it
-- See when each profile was created and its file size
+### View JSON Scan Data
+- Click "Scan > View JSON Scan Data" to see raw scan JSON
+- Copy or download the JSON for external use
 
-### Export
-- Click "Export" to generate installation files
-- Creates:
-  - `Brewfile` - Homebrew bundle file
-  - `install.sh` - Automated installation script
-  - `MANUAL_STEPS.md` - Manual installation instructions
-  - `macditto_config.json` - Full configuration backup
-- Files are saved in `output/export_TIMESTAMP/`
-
-### Compare Profiles
-- Navigate to `/diff/<profile1>/<profile2>` to compare two profiles
-- See added, removed, and common items between profiles
+### Compare Scans
+- Navigate to `/diff/<scan_dir1>/<scan_dir2>` to compare two scans
+- See added, removed, and common items between scans
 - Useful for tracking environment changes over time
 
 ## Directory Structure
@@ -82,8 +76,15 @@ MacDitto/
 │   └── static/             # CSS and JavaScript
 │       ├── style.css
 │       └── app.js
-├── profiles/               # Saved scan profiles
-├── output/                 # Generated export files
+├── scans/                  # Auto-saved scans with installation files
+│   ├── scan_history.json
+│   └── scan_*/             # Timestamped scan directories
+│       ├── saved_scan.json
+│       ├── Brewfile
+│       ├── install.sh
+│       ├── MANUAL_STEPS.md
+│       ├── SETUP_NOTES.md
+│       └── SOFTWARE_CATALOG.md
 ├── requirements.txt        # Python dependencies
 └── README_FLASK.md        # This file
 ```
@@ -94,54 +95,61 @@ MacDitto/
 Main dashboard showing scanned items
 
 ### POST /scan
-Run new environment scan
-Returns JSON with scan results
+Run new environment scan (auto-saves scan + generates installation files)
 
-### POST /save
-Save current profile
-Body: `{"name": "optional_profile_name"}`
+### GET /saved_scans
+List all saved scans with installation file paths
+Returns JSON with scan list filtered to completed scans with existing directories
 
-### GET /profiles
-List all saved profiles
-Returns JSON with profile list
+### GET /load_scan/<scan_dirname>
+Load a saved scan by directory name into the dashboard
 
-### GET /load/<profile_name>
-Load a saved profile by filename
+### POST /regenerate
+Regenerate installation files for the currently loaded scan
+Use after toggling items on/off
 
 ### POST /toggle_item
 Toggle enabled/disabled state for an item
 Body: `{"item_type": "homebrew_cask", "index": 0, "enabled": true}`
 
-### GET /diff/<profile1>/<profile2>
-Compare two saved profiles
+### GET /diff/<scan_dir1>/<scan_dir2>
+Compare two saved scans
 Shows added, removed, and common items
 
-### GET /export
-Generate installation files
-Creates Brewfile, install.sh, MANUAL_STEPS.md, and config JSON
+### GET /scan_history
+Get full scan history (including failed scans)
+
+### GET /view_json
+View current scan data as formatted JSON
+
+### GET /api/profile/json
+API endpoint to get current scan data as JSON
+
+### GET /open_file?path=<filepath>
+Serve a file for viewing in the browser
 
 ## Tips
 
 ### Running a Full Scan
-1. Click "Scan" in the navigation
+1. Click "Scan > Run Scan" in the navigation
 2. Wait for scan to complete (may take 10-30 seconds)
-3. Review results on dashboard
-4. Enable/disable items as needed
-5. Click "Save" to create a snapshot
+3. Scan auto-saves with all installation files
+4. Review results on dashboard
+5. Toggle items as needed, then click "Regenerate Files"
 
 ### Preparing for New Machine Setup
 1. Run a full scan on your current machine
 2. Review and enable only the items you want on the new machine
-3. Click "Export" to generate installation files
-4. Commit the `output/` directory to Git or copy to USB drive
+3. Click "Regenerate Files" to update installation files
+4. Commit the scan directory to Git or copy to USB drive
 5. On new machine:
    - Run the `install.sh` script
    - Follow instructions in `MANUAL_STEPS.md`
 
 ### Tracking Changes Over Time
-1. Save profiles periodically (weekly/monthly)
-2. Use profile comparison to see what's changed
-3. Keep profiles in Git to track history
+1. Run scans periodically (weekly/monthly) — each auto-saves
+2. Use scan comparison to see what's changed
+3. Keep scans in Git to track history
 
 ## Troubleshooting
 
@@ -185,8 +193,8 @@ python -c "from macditto.scanner import Scanner; s = Scanner(); p = s.scan_all()
 
 - The Flask app is for LOCAL USE ONLY
 - Do not expose to the internet without proper authentication
-- Profiles may contain sensitive information (file paths, configurations)
-- Review exported files before sharing or committing to public repos
+- Saved scans may contain sensitive information (file paths, configurations)
+- Review installation files before sharing or committing to public repos
 - The default secret key should be changed for production use
 
 ## Next Steps

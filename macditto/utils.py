@@ -80,11 +80,12 @@ def detect_category(name: str, metadata: dict = None) -> str:
 
     # Development tools
     dev_keywords = [
-        'intellij', 'idea', 'vscode', 'visual studio', 'docker', 'maven', 'gradle',
-        'node', 'npm', 'python', 'java', 'openjdk', 'jdk', 'git', 'github', 'gh',
+        'intellij', 'idea', 'vscode', 'visual studio', 'visual-studio', 'docker', 'maven', 'gradle',
+        'node', 'npm', 'python', 'java', 'openjdk', 'jdk', 'temurin', 'git', 'github', 'gh',
         'visualvm', 'anaconda', 'conda', 'xcode', 'android studio', 'pycharm',
         'sublime', 'atom', 'vim', 'emacs', 'terminal', 'iterm', 'postman',
-        'mongodb', 'postgresql', 'mysql', 'redis', 'kubernetes', 'kubectl'
+        'mongodb', 'postgresql', 'mysql', 'redis', 'kubernetes', 'kubectl',
+        'conductor'
     ]
 
     # Productivity apps
@@ -124,7 +125,7 @@ def detect_category(name: str, metadata: dict = None) -> str:
     # AI/ML tools
     ai_keywords = [
         'claude', 'chatgpt', 'whisper', 'superwhisper', 'whispering', 'pingclaude',
-        'ollama', 'lmstudio', 'tensorflow', 'pytorch', 'jupyter'
+        'ollama', 'lmstudio', 'msty', 'tensorflow', 'pytorch', 'jupyter'
     ]
 
     # Utilities
@@ -132,7 +133,8 @@ def detect_category(name: str, metadata: dict = None) -> str:
         'finder', 'activity monitor', 'disk utility', 'cleanmymac', 'daisy disk',
         'istat', 'bartender', 'magnet', 'rectangle', 'bettertouchtool',
         'appcleaner', 'the unarchiver', 'keka', 'transmission', 'tesseract',
-        'imagemagick', 'wget', 'curl', 'htop', 'tree'
+        'imagemagick', 'wget', 'curl', 'htop', 'tree',
+        'sqlite', 'httpie', 'jq'
     ]
 
     # Check each category

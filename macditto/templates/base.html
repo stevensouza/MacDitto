@@ -17,27 +17,13 @@
             <div class="nav-links">
                 <a href="/" title="View your Mac configuration overview">Dashboard</a>
                 <div class="nav-dropdown">
-                    <a href="#" class="nav-dropdown-trigger" title="Scan your system for installed software">Scan <span class="dropdown-arrow">&#9662;</span></a>
+                    <a href="#" class="nav-dropdown-trigger" title="Scan your system and manage saved scans">Scan <span class="dropdown-arrow">&#9662;</span></a>
                     <div class="nav-dropdown-menu">
                         <a href="#" onclick="runScan()" title="Scan your system for installed software">Run Scan</a>
-                        <a href="#" onclick="showScanHistory()" title="View past scan results">Scan History</a>
+                        <a href="#" onclick="showSavedScans()" title="Browse and load saved scans">Saved Scans</a>
+                        <a href="/view_json" title="View the current scan data as raw JSON">View JSON Scan Data</a>
                     </div>
                 </div>
-                <div class="nav-dropdown">
-                    <a href="#" class="nav-dropdown-trigger" title="Manage saved profiles">Profiles <span class="dropdown-arrow">&#9662;</span></a>
-                    <div class="nav-dropdown-menu">
-                        <a href="#" onclick="showProfiles()" title="Browse and load saved profiles">Load Profile</a>
-                        <a href="#" onclick="saveProfile()" title="Save current profile to disk">Save Profile</a>
-                    </div>
-                </div>
-                <div class="nav-dropdown">
-                    <a href="#" class="nav-dropdown-trigger" title="Export install scripts and files">Export <span class="dropdown-arrow">&#9662;</span></a>
-                    <div class="nav-dropdown-menu">
-                        <a href="#" onclick="exportProfile()" title="Generate install scripts and files">Export Files</a>
-                        <a href="#" onclick="showExportHistory()" title="View past exports and open files">Export History</a>
-                    </div>
-                </div>
-                <a href="/view_json" title="View raw profile data as JSON">View JSON</a>
                 <a href="/help" title="User manual and documentation">Help</a>
             </div>
         </div>
@@ -49,37 +35,6 @@
 
     <!-- Notification toast -->
     <div id="toast" class="toast"></div>
-
-    <!-- Profile modal -->
-    <div id="profileModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeProfileModal()">&times;</span>
-            <h2>Saved Profiles</h2>
-            <div id="profileList"></div>
-        </div>
-    </div>
-
-    <!-- Save profile modal -->
-    <div id="saveModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeSaveModal()">&times;</span>
-            <h2>Save Profile</h2>
-            <input type="text" id="profileName" placeholder="Profile name (optional)">
-            <button onclick="confirmSave()">Save</button>
-        </div>
-    </div>
-
-    <!-- Export History modal -->
-    <div id="exportHistoryModal" class="modal">
-        <div class="modal-content" style="max-width: 1200px; width: 95%;">
-            <span class="close" onclick="closeExportHistoryModal()">&times;</span>
-            <h2>Export History</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.95rem;">
-                View and access your previous exports. Click on any file to view it. <strong style="color: var(--cyan-bright);">Most recent exports appear first.</strong>
-            </p>
-            <div id="exportHistoryList" style="max-height: 60vh; overflow-y: auto; overflow-x: auto;"></div>
-        </div>
-    </div>
 
     <!-- Scan Progress modal -->
     <div id="scanProgressModal" class="modal">
@@ -98,19 +53,20 @@
         </div>
     </div>
 
-    <!-- Scan History modal -->
-    <div id="scanHistoryModal" class="modal">
+    <!-- Saved Scans modal -->
+    <div id="savedScansModal" class="modal">
         <div class="modal-content" style="max-width: 1200px; width: 95%;">
-            <span class="close" onclick="closeScanHistoryModal()">&times;</span>
-            <h2>Scan History</h2>
+            <span class="close" onclick="closeSavedScansModal()">&times;</span>
+            <h2>Saved Scans</h2>
             <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.95rem;">
-                View your past system scans. <strong style="color: var(--cyan-bright);">Most recent scans appear first.</strong>
+                Every scan is auto-saved with installation files. Click a row to load a scan into the dashboard. Use the file buttons to view generated installation files.
+                <strong style="color: var(--cyan-bright);">Most recent scans appear first.</strong>
             </p>
-            <div id="scanHistoryList" style="max-height: 60vh; overflow-y: auto; overflow-x: auto;"></div>
+            <div id="savedScansList" style="max-height: 60vh; overflow-y: auto; overflow-x: auto;"></div>
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='app.js') }}?v=1771212182"></script>
+    <script src="{{ url_for('static', filename='app.js') }}?v={{ range(1000000, 9999999) | random }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

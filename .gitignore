@@ -25,14 +25,14 @@ Thumbs.db
 .env
 *.log
 
-# Generated output (keep templates, ignore generated scripts)
-output/*.sh
-output/*.md
-output/*.json
-!output/.gitkeep
+# Saved scans (contain personal software inventory - never commit)
+scans/*
+!scans/.gitkeep
 
-# Scanned profiles (contain personal software inventory - never commit)
-profiles/*.json
+# Legacy directories (may still exist during migration)
+output/
+!output/.gitkeep
+profiles/
 !profiles/.gitkeep
 
 # Config files containing personal software/browser lists
