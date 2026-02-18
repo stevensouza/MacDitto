@@ -766,10 +766,15 @@ class Scanner:
         print(f"  Found {len(profile.dock_items)} Dock items")
 
         # Mark items that are in Dock
+        # Dock items use display names ("Brave Browser") while casks use kebab-case ("brave-browser")
+        # Build a normalized lookup: lowercase name with spaces/hyphens stripped
         dock_names = set(profile.dock_items)
+        dock_names_normalized = {name.lower().replace(' ', '').replace('-', '') for name in dock_names}
         for item_list in [profile.homebrew_casks, profile.applications]:
             for item in item_list:
                 if item.name in dock_names:
+                    item.in_dock = True
+                elif item.name.lower().replace(' ', '').replace('-', '') in dock_names_normalized:
                     item.in_dock = True
 
         # Step 4: Scan login items
@@ -781,10 +786,14 @@ class Scanner:
         print(f"  Found {len(profile.login_items)} login items")
 
         # Mark items that start on login
+        # Same normalization as dock items for name format matching
         login_names = set(profile.login_items)
+        login_names_normalized = {name.lower().replace(' ', '').replace('-', '') for name in login_names}
         for item_list in [profile.homebrew_casks, profile.applications]:
             for item in item_list:
                 if item.name in login_names:
+                    item.start_on_login = True
+                elif item.name.lower().replace(' ', '').replace('-', '') in login_names_normalized:
                     item.start_on_login = True
 
         # Step 5: Scan shell configs

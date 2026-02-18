@@ -504,10 +504,17 @@ tr.category-first-row td {
 
 .items-table tbody tr {
     transition: all 0.3s;
+}
+
+.items-table tbody tr:hover {
+    background: var(--bg-tertiary);
+}
+
+.items-table tbody tr td:first-child {
     position: relative;
 }
 
-.items-table tbody tr::before {
+.items-table tbody tr:hover td:first-child::before {
     content: '';
     position: absolute;
     left: 0;
@@ -515,16 +522,6 @@ tr.category-first-row td {
     bottom: 0;
     width: 2px;
     background: var(--cyan-bright);
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.items-table tbody tr:hover {
-    background: var(--bg-tertiary);
-}
-
-.items-table tbody tr:hover::before {
-    opacity: 1;
 }
 
 .item-name {
