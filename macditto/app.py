@@ -32,7 +32,7 @@ scan_in_progress = False
 scan_progress = {
     'current_step': '',
     'step_number': 0,
-    'total_steps': 10,
+    'total_steps': 12,
     'percentage': 0,
     'item_counts': {},
     'completed': False,
@@ -148,11 +148,23 @@ def dashboard():
             if path.exists():
                 scan_files[key] = str(path.absolute())
 
+    # Detect if we're viewing a historical (non-latest) scan
+    is_historical = False
+    if current_scan_dirname:
+        try:
+            scan_files_list = list(scans_dir.glob('*/saved_scan.json'))
+            if scan_files_list:
+                most_recent = max(scan_files_list, key=lambda p: p.stat().st_mtime)
+                is_historical = most_recent.parent.name != current_scan_dirname
+        except Exception:
+            pass
+
     return render_template('dashboard.html',
                          profile=current_profile,
                          all_items=all_items,
                          category_counts=category_counts,
-                         scan_files=scan_files)
+                         scan_files=scan_files,
+                         is_historical=is_historical)
 
 
 @app.route('/scan', methods=['POST'])
@@ -176,7 +188,7 @@ def scan():
     scan_progress = {
         'current_step': 'Initializing scan',
         'step_number': 0,
-        'total_steps': 10,
+        'total_steps': 12,
         'percentage': 0,
         'item_counts': {},
         'completed': False,
@@ -215,8 +227,15 @@ def run_scan_background():
         }
 
     try:
+        # Preserve any existing notes so they survive into the new scan
+        previous_notes = current_profile.setup_notes if current_profile else ''
+
         scanner = Scanner(progress_callback=progress_callback)
         current_profile = scanner.scan_all()
+
+        # Carry notes forward — user must explicitly clear them
+        if previous_notes:
+            current_profile.setup_notes = previous_notes
 
         # Calculate duration
         duration = time.time() - scan_start_time
@@ -460,6 +479,11 @@ def save_notes():
     try:
         data = request.get_json()
         current_profile.setup_notes = data.get('notes', '')
+
+        # Persist to disk so notes survive app restarts and new scans
+        if current_scan_dirname:
+            saved_scan_path = scans_dir / current_scan_dirname / 'saved_scan.json'
+            current_profile.save(str(saved_scan_path))
 
         return jsonify({
             'success': True,
@@ -807,6 +831,21 @@ echo "Copying shell configurations..."
         for pref in profile.system_preferences:
             script += f'{pref.command}\n'
 
+    # Restore deep tool configurations
+    deep_items = _get_deep_config_items(profile)
+    if deep_items:
+        script += '\n# Restore tool configurations\n'
+        script += 'echo "Restoring tool configurations..."\n'
+        for item in deep_items:
+            dc = item.metadata["deep_config"]
+            tool = dc["tool"]
+            script += f'\n# {tool.capitalize()} configuration\n'
+            script += f'if command -v {tool} &> /dev/null; then\n'
+            script += f'    echo "Restoring {tool} configuration..."\n'
+            for cmd in dc.get("restore_commands", []):
+                script += f'    {cmd}\n'
+            script += 'fi\n'
+
     script += '\necho ""\n'
     script += 'echo "Installation complete!"\n'
     script += 'echo "See MANUAL_STEPS.md for remaining manual steps."\n'
@@ -816,6 +855,16 @@ echo "Copying shell configurations..."
 
     # Make executable
     os.chmod(filepath, 0o755)
+
+
+def _get_deep_config_items(profile):
+    """Collect all enabled items with deep_config metadata."""
+    results = []
+    for item_list in [profile.homebrew_formulae, profile.homebrew_casks, profile.applications]:
+        for item in item_list:
+            if item.enabled and item.metadata.get("deep_config"):
+                results.append(item)
+    return results
 
 
 def generate_manual_steps(profile, filepath):
@@ -874,6 +923,24 @@ Machine: {profile.machine_name}
                 md += f"Login at: {account.url}\n"
             if account.manual_instructions:
                 md += f"{account.manual_instructions}\n"
+            md += "\n"
+
+    # Tool configuration restoration
+    deep_items = _get_deep_config_items(profile)
+    if deep_items:
+        md += "## Tool Configuration Restoration\n\n"
+        md += "The following tools have internal configurations that will be restored by `install.sh`.\n\n"
+        for item in deep_items:
+            dc = item.metadata["deep_config"]
+            md += f"### {item.name}\n"
+            md += f"{dc.get('restore_note', '')}\n\n"
+            for di in dc.get("items", []):
+                name = di.get("name", "")
+                size = di.get("size", "")
+                item_type = di.get("type", "")
+                label = f"{item_type}: " if item_type else ""
+                size_label = f" ({size})" if size else ""
+                md += f"- {label}{name}{size_label}\n"
             md += "\n"
 
     # Configuration notes
@@ -979,6 +1046,22 @@ Machine: {profile.machine_name}
                     md += f"- **{item.name}** ({method}) - {desc}\n"
                 else:
                     md += f"- **{item.name}** ({method})\n"
+            md += "\n"
+
+    # Deep configuration details
+    deep_items = _get_deep_config_items(profile)
+    if deep_items:
+        md += "## Tool Configurations\n\n"
+        for item in deep_items:
+            dc = item.metadata["deep_config"]
+            md += f"### {item.name}\n\n"
+            for di in dc.get("items", []):
+                name = di.get("name", "")
+                size = di.get("size", "")
+                item_type = di.get("type", "")
+                label = f"{item_type}: " if item_type else ""
+                size_label = f" ({size})" if size else ""
+                md += f"- {label}{name}{size_label}\n"
             md += "\n"
 
     with open(filepath, 'w') as f:

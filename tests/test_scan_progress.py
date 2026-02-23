@@ -41,12 +41,13 @@ class TestScannerProgressCallback:
              patch.object(scanner, 'scan_git_config', return_value=None), \
              patch.object(scanner, 'scan_browser_extensions', return_value=[]), \
              patch.object(scanner, 'scan_browser_bookmarks', return_value={}), \
-             patch.object(scanner, 'scan_macos_preferences', return_value=[]):
+             patch.object(scanner, 'scan_macos_preferences', return_value=[]), \
+             patch.object(scanner, 'scan_deep_configs', return_value=0):
 
             profile = scanner.scan_all()
 
-            # Callback should be invoked 11 times (one for each step)
-            assert callback.call_count == 11
+            # Callback should be invoked 12 times (one for each step)
+            assert callback.call_count == 12
 
             # Verify callback was called with correct parameters
             first_call = callback.call_args_list[0]
@@ -54,7 +55,7 @@ class TestScannerProgressCallback:
 
             assert isinstance(step_name, str)
             assert step_number == 1
-            assert total_steps == 11
+            assert total_steps == 12
             assert isinstance(item_counts, dict)
 
     def test_progress_callback_includes_item_counts(self):
@@ -71,7 +72,8 @@ class TestScannerProgressCallback:
              patch.object(scanner, 'scan_git_config', return_value=None), \
              patch.object(scanner, 'scan_browser_extensions', return_value=[]), \
              patch.object(scanner, 'scan_browser_bookmarks', return_value={}), \
-             patch.object(scanner, 'scan_macos_preferences', return_value=[]):
+             patch.object(scanner, 'scan_macos_preferences', return_value=[]), \
+             patch.object(scanner, 'scan_deep_configs', return_value=0):
 
             profile = scanner.scan_all()
 
@@ -139,7 +141,7 @@ class TestFlaskScanProgress:
         app_module.scan_progress = {
             'current_step': 'Test step',
             'step_number': 5,
-            'total_steps': 10,
+            'total_steps': 12,
             'percentage': 50,
             'item_counts': {'test': 123},
             'completed': True,

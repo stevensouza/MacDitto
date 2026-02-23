@@ -1213,3 +1213,117 @@ code {
         display: none;
     }
 }
+
+/* Clickable legend filters */
+
+.legend-filter {
+    cursor: pointer;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.legend-filter:hover {
+    border-color: var(--border-bright);
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+}
+
+.legend-filter-active {
+    border-color: var(--cyan-bright) !important;
+    color: var(--text-primary) !important;
+    background: rgba(0, 217, 255, 0.1) !important;
+}
+
+/* Deep Config Expandable Rows */
+
+.deep-config-toggle {
+    display: inline-block;
+    cursor: pointer;
+    font-size: 0.7rem;
+    color: var(--cyan-bright);
+    margin-right: 0.4rem;
+    transition: transform 0.2s ease;
+    user-select: none;
+}
+
+.deep-config-toggle:hover {
+    color: var(--text-primary);
+}
+
+.deep-config-toggle.expanded {
+    transform: rotate(0deg);
+}
+
+.deep-config-row td {
+    padding: 0 !important;
+    border-top: none !important;
+}
+
+.deep-config-details {
+    margin: 0 1rem 0.75rem 2.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    border-left: 3px solid var(--cyan-bright);
+}
+
+.deep-config-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.deep-config-header strong {
+    color: var(--cyan-bright);
+}
+
+.deep-config-count {
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+}
+
+.deep-config-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.deep-config-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.6rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.deep-config-item-name {
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+}
+
+.deep-config-item-size {
+    color: var(--text-tertiary);
+    font-size: 0.7rem;
+}
+
+.deep-config-item-status {
+    color: var(--amber-bright);
+    font-size: 0.7rem;
+}
+
+.deep-config-note {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    font-style: italic;
+}
