@@ -398,6 +398,7 @@ class TestScanAll:
     def scanner(self):
         return Scanner()
 
+    @patch.object(Scanner, 'scan_deep_configs', return_value=0)
     @patch.object(Scanner, 'scan_homebrew')
     @patch.object(Scanner, 'scan_applications')
     @patch.object(Scanner, 'scan_dock_items')
@@ -422,6 +423,7 @@ class TestScanAll:
         mock_dock,
         mock_apps,
         mock_brew,
+        mock_deep_configs,
         scanner,
         capsys
     ):

@@ -16,6 +16,7 @@ from .utils import (
     get_machine_name, file_exists, read_file, get_timestamp,
     get_brew_cask_name, check_brew_cask_exists, get_manual_app_description
 )
+from .inspectors import INSPECTOR_REGISTRY, TOOL_MATCH_NAMES
 
 
 class Scanner:
@@ -686,6 +687,49 @@ class Scanner:
 
         return descriptions
 
+    def scan_deep_configs(self, profile: ScanProfile) -> int:
+        """
+        Run deep configuration inspection on tools found in the profile.
+
+        Iterates registered inspectors, matches them to items in the scan profile,
+        and attaches deep config data to matching items' metadata dicts.
+
+        Args:
+            profile: The ScanProfile with items already populated
+
+        Returns:
+            Number of tools successfully inspected
+        """
+        inspected_count = 0
+        all_items = (
+            profile.homebrew_formulae
+            + profile.homebrew_casks
+            + profile.applications
+        )
+
+        for tool_name, inspector_func in INSPECTOR_REGISTRY.items():
+            match_names = TOOL_MATCH_NAMES.get(tool_name, [tool_name])
+
+            # Find matching item in profile
+            target_item = None
+            for item in all_items:
+                if item.name.lower() in match_names:
+                    target_item = item
+                    break
+
+            if target_item is None:
+                continue
+
+            try:
+                result = inspector_func()
+                if result:
+                    target_item.metadata["deep_config"] = result
+                    inspected_count += 1
+            except Exception as e:
+                print(f"  Warning: deep inspection of {tool_name} failed: {e}")
+
+        return inspected_count
+
     def scan_all(self) -> ScanProfile:
         """
         Run all scans and return unified ScanProfile.
@@ -711,7 +755,7 @@ class Scanner:
 
         # Initialize item counts dict
         item_counts = {}
-        total_steps = 11
+        total_steps = 12
 
         # Step 1: Scan Homebrew
         if self.progress_callback:
@@ -833,9 +877,17 @@ class Scanner:
         item_counts['system_preferences'] = len(profile.system_preferences)
         print(f"  Found {len(profile.system_preferences)} system preferences")
 
-        # Step 10: Fetch software descriptions
+        # Step 10: Deep configuration inspection
         if self.progress_callback:
-            self.progress_callback("Fetching software descriptions", 10, total_steps, item_counts)
+            self.progress_callback("Inspecting tool configurations", 10, total_steps, item_counts)
+        print("Inspecting tool configurations...")
+        deep_count = self.scan_deep_configs(profile)
+        item_counts['deep_configs'] = deep_count
+        print(f"  Inspected {deep_count} tool configuration(s)")
+
+        # Step 11: Fetch software descriptions
+        if self.progress_callback:
+            self.progress_callback("Fetching software descriptions", 11, total_steps, item_counts)
         print("Fetching software descriptions...")
 
         # Fetch brew formula descriptions
@@ -867,9 +919,9 @@ class Scanner:
         )
         print(f"  Fetched {desc_count} descriptions")
 
-        # Step 11: Finalization
+        # Step 12: Finalization
         if self.progress_callback:
-            self.progress_callback("Finalizing scan results", 11, total_steps, item_counts)
+            self.progress_callback("Finalizing scan results", 12, total_steps, item_counts)
 
         print("\nScan complete!")
         return profile

@@ -7,6 +7,15 @@
     {% if profile %}
         <div class="header">
             <h2>Mac Configuration</h2>
+            {% if is_historical %}
+            <div style="margin-bottom: 0.75rem; padding: 0.6rem 1rem; background: rgba(255, 184, 77, 0.12); border-left: 3px solid var(--amber-bright); border-radius: 6px; font-size: 0.88rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                <div>
+                    <strong style="color: var(--amber-bright);">⏱ Historical Scan</strong>
+                    <span style="color: var(--text-secondary); margin-left: 0.5rem;">You are viewing a past scan, not the most recent data.</span>
+                </div>
+                <a href="/scan" onclick="event.preventDefault(); runScan();" style="font-size: 0.82rem; color: var(--cyan-bright); text-decoration: underline; cursor: pointer; white-space: nowrap;">Run new scan</a>
+            </div>
+            {% endif %}
             <div class="scan-info">
                 <p><strong>Machine:</strong> {{ profile.machine_name }}</p>
                 <p><strong>Scanned:</strong> {{ profile.scan_date }}</p>
@@ -60,6 +69,18 @@
                     <div class="card-number">{{ profile.system_preferences|length }}</div>
                     <div class="card-label">Preferences</div>
                 </a>
+                {% set deep_count = namespace(val=0) %}
+                {% for item in all_items %}
+                    {% if item.metadata and item.metadata.deep_config %}
+                        {% set deep_count.val = deep_count.val + 1 %}
+                    {% endif %}
+                {% endfor %}
+                {% if deep_count.val > 0 %}
+                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                    <div class="card-number">{{ deep_count.val }}</div>
+                    <div class="card-label">Deep Configs</div>
+                </a>
+                {% endif %}
             </div>
         </div>
 
@@ -90,11 +111,21 @@ Examples:
                        onkeyup="filterItems()">
             </div>
 
-            <!-- Legend -->
-            <div style="background: var(--bg-tertiary); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--border-subtle); display: flex; gap: 2rem; font-size: 0.9rem; color: var(--text-secondary);">
+            <!-- Legend (clickable filters) -->
+            <div style="background: var(--bg-tertiary); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--border-subtle); display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--text-secondary); flex-wrap: wrap; align-items: center;">
                 <div><strong style="color: var(--text-primary);">Legend:</strong></div>
-                <div><span style="font-size: 1.2rem;">📌</span> = In Dock</div>
-                <div><span style="font-size: 1.2rem;">▶️</span> = Starts at Login</div>
+                <div id="filter-dock" class="legend-filter" onclick="toggleFlagFilter('dock')" title="Click to filter by Dock items">
+                    <span style="font-size: 1.2rem;">📌</span> = In Dock
+                </div>
+                <div id="filter-login" class="legend-filter" onclick="toggleFlagFilter('login')" title="Click to filter by login items">
+                    <span style="font-size: 1.2rem;">▶️</span> = Starts at Login
+                </div>
+                <div id="filter-deepconfig" class="legend-filter" onclick="toggleFlagFilter('deepconfig')" title="Click to filter items with deep configuration">
+                    <span style="font-size: 0.85rem; color: var(--cyan-bright); font-weight: 700;">▶</span> = Has Deep Config
+                </div>
+                <div id="filter-active-label" style="display:none; margin-left: auto; font-size: 0.8rem; color: var(--cyan-bright);">
+                    Filtering active — <span style="cursor:pointer; text-decoration:underline;" onclick="clearFlagFilter()">clear</span>
+                </div>
             </div>
 
             <div class="category-section">
@@ -126,7 +157,12 @@ Examples:
                                     <span class="category-badge">{{ current_cat }}</span>
                                 {% endif %}
                             </td>
-                            <td class="item-name">{{ item.name }}</td>
+                            <td class="item-name">
+                                {% if item.metadata and item.metadata.deep_config %}
+                                    <span class="deep-config-toggle" onclick="toggleDeepConfig('dc-{{ loop.index }}')" title="Click to show tool configuration details">▶</span>
+                                {% endif %}
+                                {{ item.name }}
+                            </td>
                             <td class="item-description">
                                 {% if item.metadata and item.metadata.description %}
                                     {{ item.metadata.description }}
@@ -171,6 +207,37 @@ Examples:
                                 {% endif %}
                             </td>
                         </tr>
+                        {% if item.metadata and item.metadata.deep_config %}
+                        <tr class="deep-config-row" id="dc-{{ loop.index }}" style="display: none;" data-name="{{ item.name }}">
+                            <td colspan="8">
+                                <div class="deep-config-details">
+                                    <div class="deep-config-header">
+                                        <strong>{{ item.metadata.deep_config.tool|capitalize }} Configuration</strong>
+                                        <span class="deep-config-count">{{ item.metadata.deep_config['items']|length }} item{{ 's' if item.metadata.deep_config['items']|length != 1 else '' }}</span>
+                                    </div>
+                                    <div class="deep-config-items">
+                                        {% for dc_item in item.metadata.deep_config['items'] %}
+                                        <div class="deep-config-item">
+                                            <span class="deep-config-item-name">
+                                                {% if dc_item.type %}{{ dc_item.type }}:{% endif %}
+                                                {{ dc_item.name }}
+                                            </span>
+                                            {% if dc_item.size %}
+                                            <span class="deep-config-item-size">{{ dc_item.size }}</span>
+                                            {% endif %}
+                                            {% if dc_item.status %}
+                                            <span class="deep-config-item-status">{{ dc_item.status }}</span>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% if item.metadata.deep_config.restore_note %}
+                                    <div class="deep-config-note">{{ item.metadata.deep_config.restore_note }}</div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
                         {% set ns.prev_category = current_cat %}
                         {% endfor %}
                     </tbody>
@@ -251,7 +318,18 @@ function sortTable(column) {
     const table = document.getElementById('mainItemsTable');
     if (!table) return;
     const tbody = table.querySelector('tbody');
-    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const allRows = Array.from(tbody.querySelectorAll('tr'));
+
+    // Build groups: each item row + its optional deep-config sub-row
+    const groups = [];
+    for (let i = 0; i < allRows.length; i++) {
+        if (allRows[i].classList.contains('deep-config-row')) continue;
+        const group = [allRows[i]];
+        if (i + 1 < allRows.length && allRows[i + 1].classList.contains('deep-config-row')) {
+            group.push(allRows[i + 1]);
+        }
+        groups.push(group);
+    }
 
     // Toggle direction if same column
     if (currentSort.column === column) {
@@ -271,9 +349,9 @@ function sortTable(column) {
     };
     const attr = attrMap[column];
 
-    rows.sort((a, b) => {
-        let valA = (a.getAttribute(attr) || '').toLowerCase();
-        let valB = (b.getAttribute(attr) || '').toLowerCase();
+    groups.sort((a, b) => {
+        let valA = (a[0].getAttribute(attr) || '').toLowerCase();
+        let valB = (b[0].getAttribute(attr) || '').toLowerCase();
         // Push empty values to the end
         if (!valA && valB) return 1;
         if (valA && !valB) return -1;
@@ -281,8 +359,9 @@ function sortTable(column) {
         return currentSort.direction === 'asc' ? cmp : -cmp;
     });
 
-    // Re-append rows
-    rows.forEach(row => tbody.appendChild(row));
+    // Re-append rows (each group: item row + optional sub-row)
+    const rows = groups.map(g => g[0]);
+    groups.forEach(group => group.forEach(row => tbody.appendChild(row)));
 
     // Update category-first-row classes for visual grouping
     let prevCat = '';
@@ -312,22 +391,90 @@ function sortTable(column) {
     }
 }
 
-function filterItems() {
-    const searchTerm = document.getElementById('searchBox').value.toLowerCase();
-    const rows = document.querySelectorAll('.items-table tbody tr');
+let activeFlagFilter = null;
 
-    rows.forEach(row => {
-        const itemName = row.querySelector('.item-name');
-        const category = row.getAttribute('data-category') || '';
-        if (itemName) {
-            const name = itemName.textContent.toLowerCase();
-            if (name.includes(searchTerm) || category.toLowerCase().includes(searchTerm)) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+function toggleFlagFilter(flag) {
+    activeFlagFilter = activeFlagFilter === flag ? null : flag;
+    // Update legend item styles
+    ['dock', 'login', 'deepconfig'].forEach(f => {
+        const el = document.getElementById('filter-' + f);
+        if (el) {
+            el.classList.toggle('legend-filter-active', activeFlagFilter === f);
         }
     });
+    // Show/hide "filtering active" label
+    const label = document.getElementById('filter-active-label');
+    if (label) label.style.display = activeFlagFilter ? '' : 'none';
+    filterItems();
+}
+
+function clearFlagFilter() {
+    activeFlagFilter = null;
+    ['dock', 'login', 'deepconfig'].forEach(f => {
+        const el = document.getElementById('filter-' + f);
+        if (el) el.classList.remove('legend-filter-active');
+    });
+    const label = document.getElementById('filter-active-label');
+    if (label) label.style.display = 'none';
+    filterItems();
+}
+
+function filterItems() {
+    const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+    const table = document.getElementById('mainItemsTable');
+    if (!table) return;
+    const rows = table.querySelectorAll('tbody tr');
+
+    rows.forEach(row => {
+        // Skip deep-config sub-rows (they follow their parent's visibility)
+        if (row.classList.contains('deep-config-row')) return;
+
+        const itemName = row.querySelector('.item-name');
+        const category = row.getAttribute('data-category') || '';
+        const flags = row.getAttribute('data-flags') || '';
+        const nextRow = row.nextElementSibling;
+        const hasDeepConfig = !!(nextRow && nextRow.classList.contains('deep-config-row'));
+
+        if (!itemName) return;
+
+        const name = itemName.textContent.toLowerCase();
+        let deepText = hasDeepConfig ? nextRow.textContent.toLowerCase() : '';
+
+        // Text search match
+        const textMatch = !searchTerm ||
+            name.includes(searchTerm) ||
+            category.toLowerCase().includes(searchTerm) ||
+            deepText.includes(searchTerm);
+
+        // Flag filter match
+        let flagMatch = true;
+        if (activeFlagFilter === 'dock') flagMatch = flags.includes('📌');
+        else if (activeFlagFilter === 'login') flagMatch = flags.includes('▶️');
+        else if (activeFlagFilter === 'deepconfig') flagMatch = hasDeepConfig;
+
+        const visible = textMatch && flagMatch;
+        row.style.display = visible ? '' : 'none';
+        if (nextRow && nextRow.classList.contains('deep-config-row')) {
+            // Keep sub-row hidden unless its parent is visible and it was already expanded
+            if (!visible) nextRow.style.display = 'none';
+        }
+    });
+}
+
+function toggleDeepConfig(rowId) {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+
+    const toggle = row.previousElementSibling.querySelector('.deep-config-toggle');
+    if (row.style.display === 'none') {
+        row.style.display = '';
+        if (toggle) toggle.textContent = '▼';
+        if (toggle) toggle.classList.add('expanded');
+    } else {
+        row.style.display = 'none';
+        if (toggle) toggle.textContent = '▶';
+        if (toggle) toggle.classList.remove('expanded');
+    }
 }
 
 function toggleNotesSection() {
