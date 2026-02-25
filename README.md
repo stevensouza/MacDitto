@@ -104,7 +104,7 @@ python3 -m macditto.app
 python3 -c "from macditto.app import app; app.run(debug=True)"
 ```
 
-Then open your browser to: **http://localhost:5000**
+Then open your browser to: **http://localhost:5001**
 
 ### Basic Usage (3 Steps)
 
@@ -118,16 +118,19 @@ Then open your browser to: **http://localhost:5000**
 
 ### ✅ Comprehensive Scanning
 
-MacDitto scans **8 major categories** of software and configurations:
+MacDitto performs a comprehensive **14-step scan** covering:
 
 - **Homebrew packages** (formulae and casks)
 - **Applications** (/Applications directory)
 - **Browser extensions** (Chrome, Brave)
 - **Shell configurations** (.zshrc, .bash_profile, etc.)
 - **Git configuration** (.gitconfig)
+- **SSH configuration** (host aliases, key filenames — never private key contents)
+- **Crontab** (user cron jobs)
 - **Dock items** (apps pinned to Dock)
 - **Login items** (apps that start automatically)
-- **macOS system preferences** (Trackpad, Keyboard, Dock settings)
+- **macOS system preferences** (Trackpad, Keyboard, Dock, Mouse, Dark Mode, Accessibility, Hot Corners, Mission Control)
+- **Deep tool configurations** (Ollama models, Docker images/containers via pluggable inspector system)
 
 ### ✅ Smart Categorization
 
@@ -154,6 +157,7 @@ Every scan automatically saves to a timestamped directory with all installation 
 - **`MANUAL_STEPS.md`** - Checklist for manual installations
 - **`SETUP_NOTES.md`** - Your personal setup notes
 - **`SOFTWARE_CATALOG.md`** - Markdown catalog of all software with descriptions
+- **`DOTFILES.md`** - Shell configs, git config, SSH config, crontab, and macOS defaults in one file
 
 Load any saved scan to review, compare, or regenerate files after toggling items.
 
@@ -360,7 +364,112 @@ Brave Extensions:
    - Default view: list view
    ```
 
+5. **Mouse/Trackpad Settings**
+   ```
+   - Mouse tracking speed
+   - Trackpad scaling
+   ```
+
+6. **Dark Mode & Appearance**
+   ```
+   - Interface style (Dark/Light)
+   - Accent color
+   - Highlight color
+   ```
+
+7. **Accessibility**
+   ```
+   - Reduce motion: enabled/disabled
+   - Reduce transparency: enabled/disabled
+   ```
+
+8. **Hot Corners**
+   ```
+   - Top-left, top-right, bottom-left, bottom-right actions
+   ```
+
+9. **Mission Control**
+   ```
+   - Auto-rearrange Spaces: enabled/disabled
+   ```
+
 **Export:** Generates `defaults write` commands to replicate settings
+
+---
+
+### SSH Configuration
+
+**What:** SSH host aliases and key filenames (never private key contents)
+
+**How:** Reads `~/.ssh/config` and lists key filenames from `~/.ssh/` directory
+
+**Example captured:**
+```
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519
+
+SSH Keys found:
+- id_ed25519
+- id_rsa
+```
+
+**Export:** `install.sh` restores `~/.ssh/config` with proper permissions and reminds you to regenerate SSH keys on the new machine
+
+**Safety:** Private key **contents** are never read or exported — only filenames are captured for reference
+
+---
+
+### Crontab
+
+**What:** User cron jobs
+
+**How:** Runs `crontab -l`
+
+**Example captured:**
+```
+0 9 * * 1 /usr/local/bin/backup.sh
+30 18 * * * /usr/local/bin/cleanup.sh
+```
+
+**Export:** `install.sh` restores crontab entries from saved `crontab.txt`
+
+---
+
+### Deep Tool Configurations
+
+**What:** Internal state of specific tools — currently Ollama and Docker
+
+**How:** Pluggable inspector system (`@register_inspector()` decorator in `inspectors.py`)
+
+**Ollama Inspector:**
+```
+Models installed:
+- llama3.2:latest (2.0 GB)
+- codellama:13b (7.4 GB)
+- mistral:latest (4.1 GB)
+
+Restore commands:
+  ollama pull llama3.2:latest
+  ollama pull codellama:13b
+  ollama pull mistral:latest
+```
+
+**Docker Inspector:**
+```
+Images:
+- postgres:16 (412 MB)
+- redis:7-alpine (30 MB)
+- nginx:latest (187 MB)
+
+Restore commands:
+  docker pull postgres:16
+  docker pull redis:7-alpine
+  docker pull nginx:latest
+```
+
+**Dashboard:** Items with deep configuration data show a `▶` expand icon. Click to reveal models, images, containers, and restore commands.
 
 ---
 
@@ -372,7 +481,7 @@ Brave Extensions:
 # Start MacDitto
 python3 -m macditto.app
 
-# Open browser to http://localhost:5000
+# Open browser to http://localhost:5001
 # Click "Scan" button
 
 # Output in browser:
@@ -549,14 +658,20 @@ python3 scan.py
 
 # Output:
 Starting MacDitto scan...
-[1/8] Scanning Homebrew formulae... ✓ 42 found
-[2/8] Scanning Homebrew casks... ✓ 18 found
-[3/8] Scanning applications... ✓ 67 found
-[4/8] Scanning Dock items... ✓ 8 found
-[5/8] Scanning login items... ✓ 3 found
-[6/8] Scanning shell configs... ✓ 2 found
-[7/8] Scanning browser extensions... ✓ 12 found
-[8/8] Scanning system preferences... ✓ 15 found
+[ 1/14] Scanning Homebrew packages... ✓ 60 found
+[ 2/14] Scanning installed applications... ✓ 67 found
+[ 3/14] Scanning Dock items... ✓ 8 found
+[ 4/14] Scanning login items... ✓ 3 found
+[ 5/14] Scanning shell configurations... ✓ 2 found
+[ 6/14] Scanning Git configuration... ✓
+[ 7/14] Scanning SSH configuration... ✓
+[ 8/14] Scanning crontab... ✓
+[ 9/14] Scanning browser extensions... ✓ 12 found
+[10/14] Scanning browser bookmarks... ✓
+[11/14] Scanning macOS system preferences... ✓ 15 found
+[12/14] Inspecting tool configurations... ✓ (Ollama, Docker)
+[13/14] Fetching software descriptions... ✓
+[14/14] Finalizing scan results... ✓
 
 Scan complete! Saved to: scan_results.json
 
@@ -651,11 +766,30 @@ Use the **Search** box to filter items by name in real time.
 
 ### Setup Notes
 
-The collapsible **Setup Notes** section lets you write free-form markdown notes that:
+The collapsible **Setup Notes** section has two tiers:
 
-- Are saved with each profile
-- Are exported as `SETUP_NOTES.md` when you export
-- Useful for login hints, manual steps, license locations, and custom settings
+- **Machine Notes** — persistent markdown notes shared across all scans for this machine, stored in `scans/machine_notes.md`. Useful for durable info: serial number, common passwords hint, hardware notes.
+- **Scan Notes** — notes specific to the current scan, stored in that scan's `SETUP_NOTES.md`. Useful for "what I changed before this scan" or installation reminders.
+
+Both are exported into `SETUP_NOTES.md` under separate headings. Useful for login hints, manual steps, license locations, and custom settings.
+
+### Deep Config Detail Rows
+
+Items detected by the inspector system (Ollama models, Docker images) show a `▶` icon in the table. Click it to expand an inline detail panel showing:
+- Installed models/images with sizes
+- Ready-to-run restore commands (e.g., `ollama pull llama3.2:latest`)
+
+### Interactive Legend
+
+The legend below the search bar is clickable:
+- Click **📌 In Dock** to filter the table to only Dock items
+- Click **▶️ Starts at Login** to filter to login items
+- Click **Deep Config** to filter to items with expandable detail data
+- Click a legend item again to clear the filter
+
+### Historical Scan Warning
+
+When you load a saved scan (not the most recent scan), a warning banner appears at the top of the dashboard reminding you that the data may not reflect your current Mac state.
 
 ### Navbar Actions Explained
 
@@ -808,34 +942,41 @@ MacDitto/
 ├── macditto/              # Main package
 │   ├── __init__.py        # Package initialization
 │   ├── app.py             # Flask web application
-│   ├── scanner.py         # Environment scanner module
-│   ├── models.py          # Data models (ScanProfile, etc.)
+│   ├── scanner.py         # Environment scanner module (14-step scan_all)
+│   ├── models.py          # Data models (ScanProfile, Item, etc.)
 │   ├── utils.py           # Utility functions (categorization)
+│   ├── inspectors.py      # Deep config inspectors (Ollama, Docker)
 │   ├── templates/         # HTML templates for web interface
 │   │   ├── base.html      # Base template with navbar and modals
 │   │   ├── dashboard.html # Main dashboard with items table
 │   │   ├── diff.html      # Profile comparison view
-│   │   └── help.html      # Help/documentation page
+│   │   ├── help.html      # Help/documentation page (renders README.md)
+│   │   └── json_viewer.html # Raw JSON scan data viewer
 │   └── static/            # CSS, JavaScript, images
 │       ├── style.css      # Application styling
-│       └── app.js         # Client-side JavaScript
+│       ├── app.js         # Client-side JavaScript
+│       └── favicon-32.png # Application favicon
 ├── scans/                 # Auto-saved scans with installation files
 │   ├── .gitkeep
+│   ├── machine_notes.md   # Persistent Machine Notes (shared across scans)
 │   ├── scan_history.json  # Unified scan history
 │   └── scan_*/            # Timestamped scan directories
 │       ├── saved_scan.json     # Complete scan data
 │       ├── Brewfile            # Homebrew bundle file
 │       ├── install.sh          # Automated install script
 │       ├── MANUAL_STEPS.md     # Manual installation checklist
-│       ├── SETUP_NOTES.md      # Personal setup notes
-│       └── SOFTWARE_CATALOG.md # Software catalog with descriptions
+│       ├── SETUP_NOTES.md      # Machine Notes + Scan Notes
+│       ├── SOFTWARE_CATALOG.md # Software catalog with descriptions
+│       └── DOTFILES.md         # Shell configs, git, SSH, crontab, defaults
 ├── tests/                 # Test suite
 │   ├── __init__.py
 │   ├── test_scanner.py    # Scanner module tests
 │   ├── test_models.py     # Data model tests
 │   ├── test_utils.py      # Utility function tests
 │   ├── test_flask_app.py  # Flask route tests
-│   └── test_integration.py # End-to-end tests
+│   ├── test_integration.py # End-to-end tests
+│   ├── test_inspectors.py # Deep config inspector tests
+│   └── test_scan_progress.py # Scan progress (14-step) tests
 ├── docs/                  # Documentation
 │   ├── REQUIREMENTS.md    # Project requirements
 │   ├── FLASK_IMPLEMENTATION.md # Flask details
@@ -852,7 +993,7 @@ MacDitto/
 
 ## Testing
 
-MacDitto includes a comprehensive test suite with 61 tests covering all modules.
+MacDitto includes a comprehensive test suite with 104 tests covering all modules.
 
 ### Run All Tests
 
@@ -901,6 +1042,15 @@ open htmlcov/index.html
    - Test web routes and responses
    - Test JSON API endpoints
    - Test error handling
+
+4. **Inspector Tests** (`test_inspectors.py`)
+   - Test `@register_inspector()` decorator system
+   - Mock Ollama and Docker CLI calls
+   - Verify restore command generation
+
+5. **Scan Progress Tests** (`test_scan_progress.py`)
+   - Verify 14-step scan flow
+   - Test progress callback reporting
 
 ---
 
@@ -1019,18 +1169,18 @@ This is expected behavior. Follow manual steps:
 
 ### Issue: MacDitto web interface won't start
 
-**Cause:** Port 5000 already in use or missing dependencies
+**Cause:** Port 5001 already in use or missing dependencies
 
 **Solution:**
 ```bash
-# Check if port 5000 is in use
-lsof -i :5000
+# Check if port 5001 is in use
+lsof -i :5001
 
-# Kill process using port 5000
+# Kill process using port 5001
 kill -9 <PID>
 
 # Or use different port
-FLASK_RUN_PORT=5001 python3 -m macditto.app
+FLASK_RUN_PORT=5002 python3 -m macditto.app
 
 # Check dependencies
 pip3 install -r requirements.txt
@@ -1130,6 +1280,9 @@ open MANUAL_STEPS.md
 - Installs GUI apps via `brew cask`
 - Copies shell configurations
 - Copies Git config
+- Restores SSH configuration (`~/.ssh/config`) with correct permissions (0600)
+- Restores crontab from `crontab.txt`
+- Reminds you to regenerate SSH keys (names listed for reference)
 - Applies macOS system preferences
 
 **Time estimate:**
@@ -1157,7 +1310,7 @@ A: Yes, but some casks may have architecture-specific versions. MacDitto will at
 A: MacDitto captures configuration files but excludes:
 - Passwords
 - API keys/tokens
-- SSH private keys
+- SSH private key **contents** (only key filenames are captured, so you know which keys to regenerate on the new Mac)
 - Browser history
 - Personal documents
 
@@ -1335,9 +1488,28 @@ SOFTWARE.
 
 ## Version History
 
+**v0.1.2** (2026-02-25)
+- SSH config scanning (`~/.ssh/config` + key filenames, never private keys)
+- Crontab scanning (user cron jobs via `crontab -l`)
+- Expanded macOS preferences: mouse/trackpad, dark mode, accessibility, hot corners, Mission Control
+- DOTFILES.md export (shell configs, git config, SSH, crontab, macOS defaults in one file)
+- Machine Notes vs Scan Notes distinction (persistent vs per-scan)
+- Scan progress now 14 steps
+- install.sh: SSH config restore, crontab restore, SSH key reminders
+- 104 tests (103 passing)
+
+**v0.1.1** (2026-02-23)
+- Deep configuration inspection system (`inspectors.py` with `@register_inspector()` decorator)
+- Ollama inspector: installed models with sizes, `ollama pull` restore commands
+- Docker inspector: images and containers, `docker pull` restore commands
+- Expandable detail rows in dashboard (`▶` icon on items with deep config data)
+- Interactive clickable legend for filtering by Dock / Login / Deep Config
+- Historical scan warning banner when viewing saved scans
+- Persistent Machine Notes across app restarts
+
 **v0.1.0** (2026-02-15)
 - Initial release
-- Scanner module complete
+- Scanner module complete (8 scan categories)
 - Flask web interface
 - Auto-saved scans with installation files
 - Sortable dashboard with Location column
@@ -1361,4 +1533,4 @@ SOFTWARE.
 
 ---
 
-**Last Updated:** 2026-02-18
+**Last Updated:** 2026-02-25
