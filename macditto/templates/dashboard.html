@@ -8,37 +8,35 @@
         <div class="header">
             <h2>Mac Configuration</h2>
             {% if is_historical %}
-            <div style="margin-bottom: 0.75rem; padding: 0.6rem 1rem; background: rgba(255, 184, 77, 0.12); border-left: 3px solid var(--amber-bright); border-radius: 6px; font-size: 0.88rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+            <div class="alert-historical">
                 <div>
-                    <strong style="color: var(--amber-bright);">⏱ Historical Scan</strong>
-                    <span style="color: var(--text-secondary); margin-left: 0.5rem;">You are viewing a past scan, not the most recent data.</span>
+                    <strong><span role="img" aria-label="Clock">⏱</span> Historical Scan</strong>
+                    <span>You are viewing a past scan, not the most recent data.</span>
                 </div>
-                <a href="/scan" onclick="event.preventDefault(); runScan();" style="font-size: 0.82rem; color: var(--cyan-bright); text-decoration: underline; cursor: pointer; white-space: nowrap;">Run new scan</a>
+                <a href="/scan" onclick="event.preventDefault(); runScan();">Run new scan</a>
             </div>
             {% endif %}
             <div class="scan-info">
                 <p><strong>Machine:</strong> {{ profile.machine_name }}</p>
                 <p><strong>Scanned:</strong> {{ profile.scan_date }}</p>
             </div>
-            <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: rgba(0, 217, 255, 0.1); border-left: 3px solid var(--cyan-bright); border-radius: 6px; font-size: 0.9rem;">
-                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+            <div class="alert-info">
+                <div class="alert-info-row">
                     <div>
-                        <strong style="color: var(--cyan-bright);">Auto-saved:</strong>
-                        <span style="color: var(--text-secondary);">Toggle items and click Regenerate to update installation files.</span>
+                        <strong>Auto-saved:</strong>
+                        <span>Toggle items and click Regenerate to update installation files.</span>
                     </div>
                     <button onclick="regenerateFiles()" class="btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.85rem; white-space: nowrap;">Regenerate Files</button>
                 </div>
                 {% if scan_files %}
-                <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-                    <span style="color: var(--text-tertiary); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Installation Files:</span>
+                <div class="file-links">
+                    <span class="file-links-label">Installation Files:</span>
                     {% for key, path in scan_files.items() %}
                     <a href="/open_file?path={{ path | urlencode }}" target="_blank"
-                       title="{{ {'brewfile': 'Brewfile', 'install_script': 'install.sh', 'manual_steps': 'MANUAL_STEPS.md', 'setup_notes': 'SETUP_NOTES.md', 'software_catalog': 'SOFTWARE_CATALOG.md'}.get(key, key) }}"
-                       style="display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; background: var(--bg-tertiary); border: 1px solid var(--border-subtle); border-radius: 4px; text-decoration: none; color: var(--text-primary); font-size: 0.8rem; transition: all 0.2s;"
-                       onmouseover="this.style.borderColor='var(--cyan-bright)';this.style.background='var(--bg-elevated)'"
-                       onmouseout="this.style.borderColor='var(--border-subtle)';this.style.background='var(--bg-tertiary)'">
-                        <span style="font-size: 0.95rem;">{{ {'brewfile': '🍺', 'install_script': '⚡', 'manual_steps': '📋', 'setup_notes': '📝', 'software_catalog': '📚'}.get(key, '📄') }}</span>
-                        <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">{{ {'brewfile': 'Brewfile', 'install_script': 'install.sh', 'manual_steps': 'MANUAL_STEPS.md', 'setup_notes': 'SETUP_NOTES.md', 'software_catalog': 'SOFTWARE_CATALOG.md'}.get(key, key) }}</span>
+                       title="{{ {'brewfile': 'Brewfile', 'install_script': 'install.sh', 'manual_steps': 'MANUAL_STEPS.md', 'setup_notes': 'SETUP_NOTES.md', 'software_catalog': 'SOFTWARE_CATALOG.md', 'dotfiles': 'DOTFILES.md'}.get(key, key) }}"
+                       class="file-link">
+                        <span class="file-link-icon">{{ {'brewfile': '🍺', 'install_script': '⚡', 'manual_steps': '📋', 'setup_notes': '📝', 'software_catalog': '📚', 'dotfiles': '🔧'}.get(key, '📄') }}</span>
+                        <span class="file-link-name">{{ {'brewfile': 'Brewfile', 'install_script': 'install.sh', 'manual_steps': 'MANUAL_STEPS.md', 'setup_notes': 'SETUP_NOTES.md', 'software_catalog': 'SOFTWARE_CATALOG.md', 'dotfiles': 'DOTFILES.md'}.get(key, key) }}</span>
                     </a>
                     {% endfor %}
                 </div>
@@ -49,23 +47,23 @@
         <div class="summary">
             <h3>Summary</h3>
             <div class="summary-cards">
-                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                <a href="#items-section" class="summary-card">
                     <div class="card-number">{{ profile.homebrew_formulae|length }}</div>
                     <div class="card-label">Brew Packages</div>
                 </a>
-                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                <a href="#items-section" class="summary-card">
                     <div class="card-number">{{ profile.homebrew_casks|length }}</div>
                     <div class="card-label">Cask Apps</div>
                 </a>
-                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                <a href="#items-section" class="summary-card">
                     <div class="card-number">{{ profile.applications|length }}</div>
                     <div class="card-label">Applications</div>
                 </a>
-                <a href="#extensions-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                <a href="#extensions-section" class="summary-card">
                     <div class="card-number">{{ profile.browser_extensions|length }}</div>
                     <div class="card-label">Extensions</div>
                 </a>
-                <a href="#preferences-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                <a href="#preferences-section" class="summary-card">
                     <div class="card-number">{{ profile.system_preferences|length }}</div>
                     <div class="card-label">Preferences</div>
                 </a>
@@ -76,7 +74,7 @@
                     {% endif %}
                 {% endfor %}
                 {% if deep_count.val > 0 %}
-                <a href="#items-section" class="summary-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                <a href="#items-section" class="summary-card">
                     <div class="card-number">{{ deep_count.val }}</div>
                     <div class="card-label">Deep Configs</div>
                 </a>
@@ -84,43 +82,62 @@
             </div>
         </div>
 
+        {% set has_machine_notes = machine_notes is defined and machine_notes %}
         <div class="setup-notes-section" style="animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.25s backwards;">
-            <div class="setup-notes-header" onclick="toggleNotesSection()">
-                <h3 style="margin-bottom: 0;">Setup Notes</h3>
-                <span class="toggle-icon" id="notesToggleIcon">▼</span>
+            <div class="setup-notes-header" onclick="toggleSection('machineNotes')" role="button" aria-expanded="{{ 'true' if has_machine_notes else 'false' }}" aria-controls="machineNotesContent">
+                <h3 style="margin-bottom: 0;">Machine Notes <span style="font-weight: 400; font-size: 0.75rem; color: var(--text-tertiary); text-transform: none; letter-spacing: normal;">(shared across all scans)</span></h3>
+                <span class="toggle-icon" id="machineNotesToggle">{{ '▼' if has_machine_notes else '▶' }}</span>
             </div>
-            <div id="setupNotesContent" class="setup-notes-content">
-                <textarea id="setupNotesTextarea" class="setup-notes-textarea" placeholder="Write your setup notes here... (supports markdown)
+            <div id="machineNotesContent" class="setup-notes-content{{ '' if has_machine_notes else ' collapsed' }}">
+                <textarea id="machineNotesTextarea" class="setup-notes-textarea" placeholder="Notes that apply to this machine across all scans...
 
 Examples:
 - Login credentials hints
-- Manual configuration steps
 - Software license locations
-- Custom settings to remember">{{ profile.setup_notes }}</textarea>
+- Manual configuration steps
+- Custom settings to remember">{{ machine_notes if machine_notes is defined else '' }}</textarea>
                 <div style="display: flex; justify-content: flex-end; margin-top: 0.75rem;">
-                    <button onclick="saveNotes()" class="btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.85rem;">Save Notes</button>
+                    <button onclick="saveMachineNotes()" class="btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.85rem;">Save Machine Notes</button>
+                </div>
+            </div>
+        </div>
+
+        {% set has_scan_notes = profile.setup_notes %}
+        <div class="setup-notes-section" style="animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s backwards;">
+            <div class="setup-notes-header" onclick="toggleSection('scanNotes')" role="button" aria-expanded="{{ 'true' if has_scan_notes else 'false' }}" aria-controls="scanNotesContent">
+                <h3 style="margin-bottom: 0;">Scan Notes <span style="font-weight: 400; font-size: 0.75rem; color: var(--text-tertiary); text-transform: none; letter-spacing: normal;">(specific to this scan)</span></h3>
+                <span class="toggle-icon" id="scanNotesToggle">{{ '▼' if has_scan_notes else '▶' }}</span>
+            </div>
+            <div id="scanNotesContent" class="setup-notes-content{{ '' if has_scan_notes else ' collapsed' }}">
+                <textarea id="scanNotesTextarea" class="setup-notes-textarea" placeholder="Notes specific to this scan...
+
+Examples:
+- Why this scan was taken
+- Differences from previous setup
+- Temporary configuration changes">{{ profile.setup_notes }}</textarea>
+                <div style="display: flex; justify-content: flex-end; margin-top: 0.75rem;">
+                    <button onclick="saveScanNotes()" class="btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.85rem;">Save Scan Notes</button>
                 </div>
             </div>
         </div>
 
         <div id="items-section" class="items-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div class="section-header-row">
                 <h3>Installed Items</h3>
                 <input type="text" id="searchBox" placeholder="🔍 Search apps..."
-                       style="padding: 0.75rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 8px; font-size: 0.95rem; width: 300px; color: var(--text-primary);"
-                       onkeyup="filterItems()">
+                       onkeyup="filterItems()" aria-label="Search installed items">
             </div>
 
             <!-- Legend (clickable filters) -->
-            <div style="background: var(--bg-tertiary); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--border-subtle); display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--text-secondary); flex-wrap: wrap; align-items: center;">
+            <div class="legend-bar" role="toolbar" aria-label="Filter options">
                 <div><strong style="color: var(--text-primary);">Legend:</strong></div>
-                <div id="filter-dock" class="legend-filter" onclick="toggleFlagFilter('dock')" title="Click to filter by Dock items">
-                    <span style="font-size: 1.2rem;">📌</span> = In Dock
+                <div id="filter-dock" class="legend-filter" onclick="toggleFlagFilter('dock')" role="button" aria-pressed="false" title="Click to filter by Dock items">
+                    <span role="img" aria-label="Pinned" style="font-size: 1.2rem;">📌</span> = In Dock
                 </div>
-                <div id="filter-login" class="legend-filter" onclick="toggleFlagFilter('login')" title="Click to filter by login items">
-                    <span style="font-size: 1.2rem;">▶️</span> = Starts at Login
+                <div id="filter-login" class="legend-filter" onclick="toggleFlagFilter('login')" role="button" aria-pressed="false" title="Click to filter by login items">
+                    <span role="img" aria-label="Play" style="font-size: 1.2rem;">▶️</span> = Starts at Login
                 </div>
-                <div id="filter-deepconfig" class="legend-filter" onclick="toggleFlagFilter('deepconfig')" title="Click to filter items with deep configuration">
+                <div id="filter-deepconfig" class="legend-filter" onclick="toggleFlagFilter('deepconfig')" role="button" aria-pressed="false" title="Click to filter items with deep configuration">
                     <span style="font-size: 0.85rem; color: var(--cyan-bright); font-weight: 700;">▶</span> = Has Deep Config
                 </div>
                 <div id="filter-active-label" style="display:none; margin-left: auto; font-size: 0.8rem; color: var(--cyan-bright);">
@@ -128,7 +145,7 @@ Examples:
                 </div>
             </div>
 
-            <div class="category-section">
+            <div class="table-scroll-wrapper category-section">
                 <table class="items-table" id="mainItemsTable">
                     <thead>
                         <tr>
@@ -150,7 +167,8 @@ Examples:
                             <td>
                                 <input type="checkbox"
                                        {% if item.enabled %}checked{% endif %}
-                                       onchange="toggleItem('{{ item.item_type }}', {{ item.original_index }}, this.checked)">
+                                       onchange="toggleItem('{{ item.item_type }}', {{ item.original_index }}, this.checked)"
+                                       aria-label="Include {{ item.name }}">
                             </td>
                             <td class="item-category">
                                 {% if current_cat != ns.prev_category %}
@@ -159,7 +177,7 @@ Examples:
                             </td>
                             <td class="item-name">
                                 {% if item.metadata and item.metadata.deep_config %}
-                                    <span class="deep-config-toggle" onclick="toggleDeepConfig('dc-{{ loop.index }}')" title="Click to show tool configuration details">▶</span>
+                                    <span class="deep-config-toggle" onclick="toggleDeepConfig('dc-{{ loop.index }}')" title="Click to show tool configuration details" role="button" aria-expanded="false" aria-controls="dc-{{ loop.index }}">▶</span>
                                 {% endif %}
                                 {{ item.name }}
                             </td>
@@ -167,7 +185,7 @@ Examples:
                                 {% if item.metadata and item.metadata.description %}
                                     {{ item.metadata.description }}
                                 {% else %}
-                                    <span style="color: var(--text-tertiary);">—</span>
+                                    <span class="text-muted">—</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -182,28 +200,28 @@ Examples:
                                     {% elif item.install_method == 'cask' %}
                                         brew install --cask {{ item.brew_package or item.name }}
                                     {% elif item.install_method == 'manual' %}
-                                        <span style="color: var(--text-tertiary);">Manual install</span>
+                                        <span class="text-muted">Manual install</span>
                                     {% else %}
-                                        <span style="color: var(--text-tertiary);">{{ item.install_method }}</span>
+                                        <span class="text-muted">{{ item.install_method }}</span>
                                     {% endif %}
                                 </code>
                             </td>
                             <td class="item-location">
                                 {% if item.metadata and item.metadata.path %}
-                                    <code style="font-size: 0.7rem; color: var(--text-tertiary); background: none; border: none; padding: 0;">{{ item.metadata.path }}</code>
+                                    <code class="code-path">{{ item.metadata.path }}</code>
                                 {% else %}
-                                    <span style="color: var(--text-tertiary);">—</span>
+                                    <span class="text-muted">—</span>
                                 {% endif %}
                             </td>
                             <td class="item-flags">
                                 {% if item.in_dock %}
-                                    <span class="flag" title="This app is in your Dock" style="cursor: help;">📌</span>
+                                    <span class="flag" role="img" aria-label="In Dock" title="This app is in your Dock">📌</span>
                                 {% endif %}
                                 {% if item.start_on_login %}
-                                    <span class="flag" title="This app starts automatically at login" style="cursor: help;">▶️</span>
+                                    <span class="flag" role="img" aria-label="Starts at login" title="This app starts automatically at login">▶️</span>
                                 {% endif %}
                                 {% if not item.in_dock and not item.start_on_login %}
-                                    <span style="color: var(--text-tertiary);">—</span>
+                                    <span class="text-muted">—</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -263,7 +281,8 @@ Examples:
                         <td>
                             <input type="checkbox"
                                    {% if ext.enabled %}checked{% endif %}
-                                   onchange="toggleItem('browser_extension', {{ loop.index0 }}, this.checked)">
+                                   onchange="toggleItem('browser_extension', {{ loop.index0 }}, this.checked)"
+                                   aria-label="Include {{ ext.name }}">
                         </td>
                         <td>{{ ext.name }}</td>
                         <td>{{ ext.browser }}</td>
@@ -301,9 +320,28 @@ Examples:
 
     {% else %}
         <div class="empty-state">
+            <div class="empty-state-icon">
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="8" y="12" width="64" height="44" rx="4" stroke="var(--cyan-bright)" stroke-width="2" opacity="0.6"/>
+                    <rect x="8" y="12" width="64" height="4" rx="2" fill="var(--cyan-bright)" opacity="0.2"/>
+                    <circle cx="14" cy="14" r="1.5" fill="var(--danger)" opacity="0.6"/>
+                    <circle cx="19" cy="14" r="1.5" fill="var(--amber-bright)" opacity="0.6"/>
+                    <circle cx="24" cy="14" r="1.5" fill="var(--success)" opacity="0.6"/>
+                    <rect x="16" y="24" width="20" height="2" rx="1" fill="var(--cyan-bright)" opacity="0.3"/>
+                    <rect x="16" y="30" width="32" height="2" rx="1" fill="var(--text-tertiary)" opacity="0.3"/>
+                    <rect x="16" y="36" width="28" height="2" rx="1" fill="var(--text-tertiary)" opacity="0.3"/>
+                    <rect x="16" y="42" width="24" height="2" rx="1" fill="var(--text-tertiary)" opacity="0.3"/>
+                    <circle cx="56" cy="36" r="8" stroke="var(--amber-bright)" stroke-width="2" opacity="0.5"/>
+                    <line x1="61.5" y1="41.5" x2="66" y2="46" stroke="var(--amber-bright)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+                    <rect x="24" y="60" width="32" height="6" rx="3" fill="var(--bg-tertiary)"/>
+                </svg>
+            </div>
             <h2>No scan loaded</h2>
-            <p>Click "Run Scan" to analyze your Mac configuration, or load a saved scan from the Scan menu.</p>
-            <button onclick="runScan()" class="btn-primary">Run Scan</button>
+            <p>Scan your Mac to discover installed software, or load a previous scan.</p>
+            <div class="empty-state-actions">
+                <button onclick="runScan()" class="btn-primary">Run Scan</button>
+                <button onclick="showSavedScans()" class="btn-secondary">Load Saved Scan</button>
+            </div>
         </div>
     {% endif %}
 </div>
@@ -395,11 +433,13 @@ let activeFlagFilter = null;
 
 function toggleFlagFilter(flag) {
     activeFlagFilter = activeFlagFilter === flag ? null : flag;
-    // Update legend item styles
+    // Update legend item styles and aria-pressed
     ['dock', 'login', 'deepconfig'].forEach(f => {
         const el = document.getElementById('filter-' + f);
         if (el) {
-            el.classList.toggle('legend-filter-active', activeFlagFilter === f);
+            const active = activeFlagFilter === f;
+            el.classList.toggle('legend-filter-active', active);
+            el.setAttribute('aria-pressed', active);
         }
     });
     // Show/hide "filtering active" label
@@ -412,7 +452,10 @@ function clearFlagFilter() {
     activeFlagFilter = null;
     ['dock', 'login', 'deepconfig'].forEach(f => {
         const el = document.getElementById('filter-' + f);
-        if (el) el.classList.remove('legend-filter-active');
+        if (el) {
+            el.classList.remove('legend-filter-active');
+            el.setAttribute('aria-pressed', 'false');
+        }
     });
     const label = document.getElementById('filter-active-label');
     if (label) label.style.display = 'none';
@@ -468,40 +511,69 @@ function toggleDeepConfig(rowId) {
     const toggle = row.previousElementSibling.querySelector('.deep-config-toggle');
     if (row.style.display === 'none') {
         row.style.display = '';
-        if (toggle) toggle.textContent = '▼';
-        if (toggle) toggle.classList.add('expanded');
+        if (toggle) {
+            toggle.textContent = '▼';
+            toggle.classList.add('expanded');
+            toggle.setAttribute('aria-expanded', 'true');
+        }
     } else {
         row.style.display = 'none';
-        if (toggle) toggle.textContent = '▶';
-        if (toggle) toggle.classList.remove('expanded');
+        if (toggle) {
+            toggle.textContent = '▶';
+            toggle.classList.remove('expanded');
+            toggle.setAttribute('aria-expanded', 'false');
+        }
     }
 }
 
-function toggleNotesSection() {
-    const content = document.getElementById('setupNotesContent');
+function toggleSection(sectionId) {
+    const content = document.getElementById(sectionId + 'Content');
+    const toggle = document.getElementById(sectionId + 'Toggle');
+    const header = content.previousElementSibling;
     content.classList.toggle('collapsed');
+    const isExpanded = !content.classList.contains('collapsed');
+    if (toggle) toggle.textContent = isExpanded ? '▼' : '▶';
+    if (header) header.setAttribute('aria-expanded', isExpanded);
 }
 
-function saveNotes() {
-    const notes = document.getElementById('setupNotesTextarea').value;
-
-    fetch('/save_notes', {
+function saveMachineNotes() {
+    const notes = document.getElementById('machineNotesTextarea').value;
+    fetch('/save_machine_notes', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: notes })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast('Notes saved successfully', 'success');
+            showToast('Machine notes saved', 'success');
         } else {
             showToast('Error: ' + data.error, 'error');
         }
     })
     .catch(error => {
-        showToast('Error saving notes', 'error');
+        showToast('Error saving machine notes', 'error');
+        console.error('Error:', error);
+    });
+}
+
+function saveScanNotes() {
+    const notes = document.getElementById('scanNotesTextarea').value;
+    fetch('/save_notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: notes })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Scan notes saved', 'success');
+        } else {
+            showToast('Error: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        showToast('Error saving scan notes', 'error');
         console.error('Error:', error);
     });
 }

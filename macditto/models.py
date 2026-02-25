@@ -148,6 +148,9 @@ class ScanProfile:
     system_preferences: List[SystemPreference] = field(default_factory=list)
     dock_items: List[str] = field(default_factory=list)
     login_items: List[str] = field(default_factory=list)
+    ssh_config: str = ""
+    ssh_key_names: List[str] = field(default_factory=list)
+    crontab: str = ""
     setup_notes: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
@@ -166,6 +169,9 @@ class ScanProfile:
             "system_preferences": [pref.to_dict() for pref in self.system_preferences],
             "dock_items": self.dock_items,
             "login_items": self.login_items,
+            "ssh_config": self.ssh_config,
+            "ssh_key_names": self.ssh_key_names,
+            "crontab": self.crontab,
             "setup_notes": self.setup_notes,
         }
 
@@ -212,6 +218,9 @@ class ScanProfile:
         ]
         profile.dock_items = data.get("dock_items", [])
         profile.login_items = data.get("login_items", [])
+        profile.ssh_config = data.get("ssh_config", "")
+        profile.ssh_key_names = data.get("ssh_key_names", [])
+        profile.crontab = data.get("crontab", "")
         profile.setup_notes = data.get("setup_notes", "")
 
         return profile

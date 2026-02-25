@@ -26,13 +26,14 @@ current_profile = None
 current_scan_dirname = None  # Track which scan dir is loaded
 scans_dir = Path(__file__).parent.parent / 'scans'
 scan_history_file = scans_dir / 'scan_history.json'
+machine_notes_path = scans_dir / 'machine_notes.md'
 
 # Global variables for scan tracking
 scan_in_progress = False
 scan_progress = {
     'current_step': '',
     'step_number': 0,
-    'total_steps': 12,
+    'total_steps': 14,
     'percentage': 0,
     'item_counts': {},
     'completed': False,
@@ -102,6 +103,11 @@ def generate_install_files(profile, scan_dir):
     generate_software_catalog(profile, software_catalog_path)
     files['software_catalog'] = str(software_catalog_path.absolute())
 
+    # Generate DOTFILES.md
+    dotfiles_path = scan_dir / 'DOTFILES.md'
+    generate_dotfiles(profile, dotfiles_path)
+    files['dotfiles'] = str(dotfiles_path.absolute())
+
     return files
 
 
@@ -116,13 +122,19 @@ def dashboard():
     if current_profile is None:
         current_profile = load_most_recent_scan()
 
+    # Load machine-level notes (shared across all scans)
+    machine_notes = ''
+    if machine_notes_path.exists():
+        machine_notes = machine_notes_path.read_text(encoding='utf-8')
+
     if current_profile is None:
         # No scan exists, show empty dashboard with scan button
         return render_template('dashboard.html',
                              profile=None,
                              all_items=[],
                              category_counts={},
-                             scan_files={})
+                             scan_files={},
+                             machine_notes=machine_notes)
 
     # Organize items by category (returns flat list sorted by category)
     all_items = organize_items_by_category(current_profile)
@@ -143,6 +155,7 @@ def dashboard():
             'manual_steps': scan_dir / 'MANUAL_STEPS.md',
             'setup_notes': scan_dir / 'SETUP_NOTES.md',
             'software_catalog': scan_dir / 'SOFTWARE_CATALOG.md',
+            'dotfiles': scan_dir / 'DOTFILES.md',
         }
         for key, path in file_map.items():
             if path.exists():
@@ -164,7 +177,8 @@ def dashboard():
                          all_items=all_items,
                          category_counts=category_counts,
                          scan_files=scan_files,
-                         is_historical=is_historical)
+                         is_historical=is_historical,
+                         machine_notes=machine_notes)
 
 
 @app.route('/scan', methods=['POST'])
@@ -188,7 +202,7 @@ def scan():
     scan_progress = {
         'current_step': 'Initializing scan',
         'step_number': 0,
-        'total_steps': 12,
+        'total_steps': 14,
         'percentage': 0,
         'item_counts': {},
         'completed': False,
@@ -227,15 +241,11 @@ def run_scan_background():
         }
 
     try:
-        # Preserve any existing notes so they survive into the new scan
-        previous_notes = current_profile.setup_notes if current_profile else ''
-
         scanner = Scanner(progress_callback=progress_callback)
         current_profile = scanner.scan_all()
 
-        # Carry notes forward — user must explicitly clear them
-        if previous_notes:
-            current_profile.setup_notes = previous_notes
+        # Scan notes start empty for each new scan.
+        # Machine-level notes (scans/machine_notes.md) handle persistent notes.
 
         # Calculate duration
         duration = time.time() - scan_start_time
@@ -513,6 +523,27 @@ def get_notes():
         'success': True,
         'notes': current_profile.setup_notes
     })
+
+
+@app.route('/save_machine_notes', methods=['POST'])
+def save_machine_notes():
+    """Save machine-level notes that persist across all scans."""
+    try:
+        data = request.get_json()
+        notes = data.get('notes', '')
+        machine_notes_path.write_text(notes, encoding='utf-8')
+        return jsonify({'success': True, 'message': 'Machine notes saved'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/get_machine_notes')
+def get_machine_notes():
+    """Get machine-level notes."""
+    notes = ''
+    if machine_notes_path.exists():
+        notes = machine_notes_path.read_text(encoding='utf-8')
+    return jsonify({'success': True, 'notes': notes})
 
 
 @app.route('/diff/<scan_dir1>/<scan_dir2>')
@@ -825,6 +856,33 @@ echo "Copying shell configurations..."
         script += '\n# Copy Git config\n'
         script += 'cp configs/gitconfig ~/.gitconfig\n'
 
+    # Restore SSH config
+    if profile.ssh_config:
+        script += '\n# Restore SSH config\n'
+        script += 'echo "Restoring SSH configuration..."\n'
+        script += 'mkdir -p ~/.ssh\n'
+        script += 'chmod 700 ~/.ssh\n'
+        script += 'if [ -f ssh_config ]; then\n'
+        script += '    cp ssh_config ~/.ssh/config\n'
+        script += '    chmod 600 ~/.ssh/config\n'
+        script += 'fi\n'
+
+    if profile.ssh_key_names:
+        script += '\n# SSH keys reminder\n'
+        script += 'echo "NOTE: The following SSH keys were found on the source machine:"\n'
+        for key_name in profile.ssh_key_names:
+            script += f'echo "  - {key_name}"\n'
+        script += 'echo "You will need to regenerate or securely transfer these keys."\n'
+
+    # Restore crontab
+    if profile.crontab:
+        script += '\n# Restore crontab\n'
+        script += 'echo "Restoring crontab..."\n'
+        script += 'if [ -f crontab.txt ]; then\n'
+        script += '    crontab crontab.txt\n'
+        script += '    echo "Crontab restored"\n'
+        script += 'fi\n'
+
     # Apply system preferences
     if profile.system_preferences:
         script += '\n# Apply macOS system preferences\n'
@@ -963,7 +1021,7 @@ Machine: {profile.machine_name}
 
 
 def generate_setup_notes(profile, filepath):
-    """Generate SETUP_NOTES.md from the profile's setup notes."""
+    """Generate SETUP_NOTES.md from machine notes and per-scan notes."""
     md = f"""# Setup Notes
 
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
@@ -972,10 +1030,78 @@ Machine: {profile.machine_name}
 ---
 
 """
+    # Machine-level notes (persistent across all scans)
+    machine_notes = ''
+    if machine_notes_path.exists():
+        machine_notes = machine_notes_path.read_text(encoding='utf-8').strip()
+
+    if machine_notes:
+        md += "## Machine Notes\n\n"
+        md += machine_notes + "\n\n"
+
+    # Per-scan notes
     if profile.setup_notes:
+        md += "## Scan Notes\n\n"
         md += profile.setup_notes + "\n"
-    else:
+
+    if not machine_notes and not profile.setup_notes:
         md += "_No setup notes have been added yet. Use the MacDitto web interface to add notes about your setup._\n"
+
+    with open(filepath, 'w') as f:
+        f.write(md)
+
+
+def generate_dotfiles(profile, filepath):
+    """Generate DOTFILES.md concatenating shell configs, git config, SSH, crontab, and macOS defaults."""
+    md = f"""# Dotfiles
+
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+Machine: {profile.machine_name}
+
+"""
+
+    # Shell configs
+    for cfg in profile.shell_configs:
+        md += f"## {cfg.filename}\n\n"
+        md += f"```bash\n{cfg.content}\n```\n\n"
+
+    # Git config
+    if profile.git_config:
+        md += "## .gitconfig\n\n"
+        md += f"```ini\n{profile.git_config}\n```\n\n"
+
+    # SSH config
+    if profile.ssh_config:
+        md += "## .ssh/config\n\n"
+        md += f"```\n{profile.ssh_config}\n```\n\n"
+
+    # SSH key names
+    if profile.ssh_key_names:
+        md += "## SSH Keys\n\n"
+        md += "Key files found (names only — private key contents are never exported):\n\n"
+        for key_name in profile.ssh_key_names:
+            md += f"- `{key_name}`\n"
+        md += "\n"
+
+    # Crontab
+    if profile.crontab:
+        md += "## Crontab\n\n"
+        md += f"```\n{profile.crontab}\n```\n\n"
+
+    # macOS defaults
+    if profile.system_preferences:
+        md += "## macOS Defaults\n\n"
+        md += "| Domain | Key | Value | Description |\n"
+        md += "|--------|-----|-------|-------------|\n"
+        for pref in profile.system_preferences:
+            desc = pref.description or ''
+            md += f"| `{pref.domain}` | `{pref.key}` | `{pref.value}` | {desc} |\n"
+        md += "\n### Restore Commands\n\n"
+        md += "```bash\n"
+        for pref in profile.system_preferences:
+            if pref.command:
+                md += f"{pref.command}\n"
+        md += "```\n"
 
     with open(filepath, 'w') as f:
         f.write(md)
