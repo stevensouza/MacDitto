@@ -23,7 +23,7 @@ python -m macditto.app
 
 Navigate to:
 ```
-http://localhost:5000
+http://localhost:5001
 ```
 
 ## Step 4: Run Your First Scan
@@ -71,6 +71,7 @@ Each saved scan includes:
 - `MANUAL_STEPS.md` - Manual instructions
 - `SETUP_NOTES.md` - Your personal notes
 - `SOFTWARE_CATALOG.md` - Software catalog
+- `DOTFILES.md` - Shell configs, git config, SSH, crontab, macOS defaults
 
 ### Compare Two Scans
 
@@ -114,9 +115,9 @@ Shows what changed between scans.
 
 ## Troubleshooting
 
-**Port 5000 already in use?**
+**Port 5001 already in use?**
 ```bash
-python -m macditto.app --port 5001
+python -m macditto.app --port 5002
 ```
 
 **Scan not working?**
