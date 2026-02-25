@@ -313,6 +313,53 @@ class Scanner:
         git_config_path = os.path.join(self.home_dir, '.gitconfig')
         return read_file(git_config_path)
 
+    def scan_ssh_config(self) -> tuple:
+        """
+        Scan SSH configuration and list key filenames.
+
+        Returns:
+            Tuple of (ssh_config_content, list_of_key_names)
+            Never reads private key contents — only filenames.
+        """
+        ssh_dir = os.path.join(self.home_dir, '.ssh')
+        ssh_config = ''
+        ssh_key_names = []
+
+        # Read SSH config file
+        config_path = os.path.join(ssh_dir, 'config')
+        content = read_file(config_path)
+        if content is not None:
+            ssh_config = content
+
+        # List key filenames (names only, never contents)
+        if os.path.isdir(ssh_dir):
+            for filename in sorted(os.listdir(ssh_dir)):
+                filepath = os.path.join(ssh_dir, filename)
+                if not os.path.isfile(filepath):
+                    continue
+                # Skip config, known_hosts, and .pub files (we'll infer from private key names)
+                if filename in ('config', 'known_hosts', 'authorized_keys', 'environment'):
+                    continue
+                if filename.endswith('.pub'):
+                    continue
+                # Common key file patterns
+                if filename.startswith('id_') or filename.startswith('key_') or filename == 'identity':
+                    ssh_key_names.append(filename)
+
+        return ssh_config, ssh_key_names
+
+    def scan_crontab(self) -> str:
+        """
+        Scan current user's crontab.
+
+        Returns:
+            Crontab contents or empty string if no crontab exists.
+        """
+        success, stdout, stderr = run_command(['crontab', '-l'])
+        if success and stdout and 'no crontab for' not in stdout.lower():
+            return stdout.strip()
+        return ''
+
     def scan_browser_extensions(self) -> List[BrowserExtension]:
         """
         Scan for installed browser extensions.
@@ -571,6 +618,62 @@ class Scanner:
             if pref:
                 preferences.append(pref)
 
+        # Mouse preferences
+        mouse_prefs = [
+            ('NSGlobalDomain', 'com.apple.mouse.scaling', 'Mouse tracking speed'),
+        ]
+
+        for domain, key, description in mouse_prefs:
+            pref = self._read_preference(domain, key, description)
+            if pref:
+                preferences.append(pref)
+
+        # Global UI preferences
+        ui_prefs = [
+            ('NSGlobalDomain', 'AppleInterfaceStyle', 'Dark mode'),
+            ('NSGlobalDomain', 'AppleAccentColor', 'Accent color'),
+            ('NSGlobalDomain', 'AppleHighlightColor', 'Highlight color'),
+        ]
+
+        for domain, key, description in ui_prefs:
+            pref = self._read_preference(domain, key, description)
+            if pref:
+                preferences.append(pref)
+
+        # Accessibility preferences
+        accessibility_prefs = [
+            ('com.apple.universalaccess', 'reduceMotion', 'Reduce motion'),
+            ('com.apple.universalaccess', 'reduceTransparency', 'Reduce transparency'),
+        ]
+
+        for domain, key, description in accessibility_prefs:
+            pref = self._read_preference(domain, key, description)
+            if pref:
+                preferences.append(pref)
+
+        # Hot Corners
+        hot_corner_prefs = [
+            ('com.apple.dock', 'wvous-tl-corner', 'Hot corner: top-left action'),
+            ('com.apple.dock', 'wvous-tr-corner', 'Hot corner: top-right action'),
+            ('com.apple.dock', 'wvous-bl-corner', 'Hot corner: bottom-left action'),
+            ('com.apple.dock', 'wvous-br-corner', 'Hot corner: bottom-right action'),
+        ]
+
+        for domain, key, description in hot_corner_prefs:
+            pref = self._read_preference(domain, key, description)
+            if pref:
+                preferences.append(pref)
+
+        # Mission Control
+        mission_prefs = [
+            ('com.apple.dock', 'mru-spaces', 'Auto-rearrange Spaces based on recent use'),
+        ]
+
+        for domain, key, description in mission_prefs:
+            pref = self._read_preference(domain, key, description)
+            if pref:
+                preferences.append(pref)
+
         return preferences
 
     def _read_preference(self, domain: str, key: str, description: str) -> Optional[SystemPreference]:
@@ -755,7 +858,7 @@ class Scanner:
 
         # Initialize item counts dict
         item_counts = {}
-        total_steps = 12
+        total_steps = 14
 
         # Step 1: Scan Homebrew
         if self.progress_callback:
@@ -852,42 +955,65 @@ class Scanner:
         if profile.git_config:
             print("  Found .gitconfig")
 
-        # Step 7: Scan browser extensions
+        # Step 7: Scan SSH config
         if self.progress_callback:
-            self.progress_callback("Scanning browser extensions", 7, total_steps, item_counts)
+            self.progress_callback("Scanning SSH configuration", 7, total_steps, item_counts)
+        print("Scanning SSH configuration...")
+        profile.ssh_config, profile.ssh_key_names = self.scan_ssh_config()
+        item_counts['ssh_keys'] = len(profile.ssh_key_names)
+        if profile.ssh_config:
+            print(f"  Found SSH config with {len(profile.ssh_key_names)} key(s)")
+        else:
+            print("  No SSH config found")
+
+        # Step 8: Scan crontab
+        if self.progress_callback:
+            self.progress_callback("Scanning crontab", 8, total_steps, item_counts)
+        print("Scanning crontab...")
+        profile.crontab = self.scan_crontab()
+        item_counts['crontab'] = 1 if profile.crontab else 0
+        if profile.crontab:
+            lines = len([l for l in profile.crontab.splitlines() if l.strip() and not l.strip().startswith('#')])
+            print(f"  Found crontab with {lines} active entries")
+        else:
+            print("  No crontab found")
+
+        # Step 9: Scan browser extensions
+        if self.progress_callback:
+            self.progress_callback("Scanning browser extensions", 9, total_steps, item_counts)
         print("Scanning browser extensions...")
         profile.browser_extensions = self.scan_browser_extensions()
         item_counts['browser_extensions'] = len(profile.browser_extensions)
         print(f"  Found {len(profile.browser_extensions)} browser extensions")
 
-        # Step 8: Scan browser bookmarks
+        # Step 10: Scan browser bookmarks
         if self.progress_callback:
-            self.progress_callback("Scanning browser bookmarks", 8, total_steps, item_counts)
+            self.progress_callback("Scanning browser bookmarks", 10, total_steps, item_counts)
         print("Scanning browser bookmarks...")
         profile.browser_bookmarks = self.scan_browser_bookmarks()
         bookmark_count = sum(1 for _ in profile.browser_bookmarks.keys())
         item_counts['browser_bookmarks'] = bookmark_count
         print(f"  Found bookmarks for {bookmark_count} browsers")
 
-        # Step 9: Scan macOS preferences
+        # Step 11: Scan macOS preferences
         if self.progress_callback:
-            self.progress_callback("Scanning macOS system preferences", 9, total_steps, item_counts)
+            self.progress_callback("Scanning macOS system preferences", 11, total_steps, item_counts)
         print("Scanning macOS system preferences...")
         profile.system_preferences = self.scan_macos_preferences()
         item_counts['system_preferences'] = len(profile.system_preferences)
         print(f"  Found {len(profile.system_preferences)} system preferences")
 
-        # Step 10: Deep configuration inspection
+        # Step 12: Deep configuration inspection
         if self.progress_callback:
-            self.progress_callback("Inspecting tool configurations", 10, total_steps, item_counts)
+            self.progress_callback("Inspecting tool configurations", 12, total_steps, item_counts)
         print("Inspecting tool configurations...")
         deep_count = self.scan_deep_configs(profile)
         item_counts['deep_configs'] = deep_count
         print(f"  Inspected {deep_count} tool configuration(s)")
 
-        # Step 11: Fetch software descriptions
+        # Step 13: Fetch software descriptions
         if self.progress_callback:
-            self.progress_callback("Fetching software descriptions", 11, total_steps, item_counts)
+            self.progress_callback("Fetching software descriptions", 13, total_steps, item_counts)
         print("Fetching software descriptions...")
 
         # Fetch brew formula descriptions
@@ -919,9 +1045,9 @@ class Scanner:
         )
         print(f"  Fetched {desc_count} descriptions")
 
-        # Step 12: Finalization
+        # Step 14: Finalization
         if self.progress_callback:
-            self.progress_callback("Finalizing scan results", 12, total_steps, item_counts)
+            self.progress_callback("Finalizing scan results", 14, total_steps, item_counts)
 
         print("\nScan complete!")
         return profile

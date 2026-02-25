@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}MacDitto{% endblock %}</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2300D9FF'/%3E%3Cstop offset='100%25' stop-color='%23FFB84D'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='6' fill='%230a0a0a'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Arial,sans-serif' font-weight='bold' font-size='20' fill='url(%23g)'%3EM%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -16,12 +17,12 @@
             <h1 class="logo">MacDitto</h1>
             <div class="nav-links">
                 <a href="/" title="View your Mac configuration overview">Dashboard</a>
-                <div class="nav-dropdown">
-                    <a href="#" class="nav-dropdown-trigger" title="Scan your system and manage saved scans">Scan <span class="dropdown-arrow">&#9662;</span></a>
-                    <div class="nav-dropdown-menu">
-                        <a href="#" onclick="runScan()" title="Scan your system for installed software">Run Scan</a>
-                        <a href="#" onclick="showSavedScans()" title="Browse and load saved scans">Saved Scans</a>
-                        <a href="/view_json" title="View the current scan data as raw JSON">View JSON Scan Data</a>
+                <div class="nav-dropdown" role="navigation" aria-label="Scan menu">
+                    <a href="#" class="nav-dropdown-trigger" title="Scan your system and manage saved scans" aria-haspopup="true" aria-expanded="false">Scan <span class="dropdown-arrow">&#9662;</span></a>
+                    <div class="nav-dropdown-menu" role="menu">
+                        <a href="#" onclick="runScan()" title="Scan your system for installed software" role="menuitem">Run Scan</a>
+                        <a href="#" onclick="showSavedScans()" title="Browse and load saved scans" role="menuitem">Saved Scans</a>
+                        <a href="/view_json" title="View the current scan data as raw JSON" role="menuitem">View JSON Scan Data</a>
                     </div>
                 </div>
                 <a href="/help" title="User manual and documentation">Help</a>
@@ -34,14 +35,14 @@
     </div>
 
     <!-- Notification toast -->
-    <div id="toast" class="toast"></div>
+    <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
     <!-- Scan Progress modal -->
-    <div id="scanProgressModal" class="modal">
+    <div id="scanProgressModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="scanProgressTitle">
         <div class="modal-content" style="max-width: 600px;">
-            <h2>Scanning System</h2>
+            <h2 id="scanProgressTitle">Scanning System</h2>
             <div class="scan-progress-container">
-                <div class="progress-bar-container">
+                <div class="progress-bar-container" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                     <div id="progressBar" class="progress-bar"></div>
                     <div id="progressPercentage" class="progress-percentage">0%</div>
                 </div>
@@ -54,10 +55,10 @@
     </div>
 
     <!-- Saved Scans modal -->
-    <div id="savedScansModal" class="modal">
+    <div id="savedScansModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="savedScansTitle">
         <div class="modal-content" style="max-width: 1200px; width: 95%;">
-            <span class="close" onclick="closeSavedScansModal()">&times;</span>
-            <h2>Saved Scans</h2>
+            <span class="close" onclick="closeSavedScansModal()" aria-label="Close">&times;</span>
+            <h2 id="savedScansTitle">Saved Scans</h2>
             <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.95rem;">
                 Every scan is auto-saved with installation files. Click a row to load a scan into the dashboard. Use the file buttons to view generated installation files.
                 <strong style="color: var(--cyan-bright);">Most recent scans appear first.</strong>
@@ -67,6 +68,63 @@
     </div>
 
     <script src="{{ url_for('static', filename='app.js') }}?v={{ range(1000000, 9999999) | random }}"></script>
+    <script>
+    // Keyboard accessibility for dropdown nav
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropdown = document.querySelector('.nav-dropdown');
+        const trigger = document.querySelector('.nav-dropdown-trigger');
+        const menu = document.querySelector('.nav-dropdown-menu');
+        if (!dropdown || !trigger || !menu) return;
+
+        // Toggle dropdown on Enter/Space
+        trigger.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const expanded = trigger.getAttribute('aria-expanded') === 'true';
+                trigger.setAttribute('aria-expanded', !expanded);
+                if (!expanded) {
+                    menu.style.opacity = '1';
+                    menu.style.visibility = 'visible';
+                    menu.style.transform = 'translateX(-50%) translateY(0)';
+                    menu.querySelector('a').focus();
+                } else {
+                    menu.style.opacity = '';
+                    menu.style.visibility = '';
+                    menu.style.transform = '';
+                }
+            }
+        });
+
+        // Arrow key navigation within menu
+        menu.addEventListener('keydown', function(e) {
+            const items = Array.from(menu.querySelectorAll('a'));
+            const idx = items.indexOf(document.activeElement);
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                items[(idx + 1) % items.length].focus();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                items[(idx - 1 + items.length) % items.length].focus();
+            } else if (e.key === 'Escape') {
+                trigger.setAttribute('aria-expanded', 'false');
+                menu.style.opacity = '';
+                menu.style.visibility = '';
+                menu.style.transform = '';
+                trigger.focus();
+            }
+        });
+
+        // Close on outside click
+        document.addEventListener('click', function(e) {
+            if (!dropdown.contains(e.target)) {
+                trigger.setAttribute('aria-expanded', 'false');
+                menu.style.opacity = '';
+                menu.style.visibility = '';
+                menu.style.transform = '';
+            }
+        });
+    });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
