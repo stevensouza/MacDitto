@@ -46,8 +46,8 @@ class TestScannerProgressCallback:
 
             profile = scanner.scan_all()
 
-            # Callback should be invoked 12 times (one for each step)
-            assert callback.call_count == 12
+            # Callback should be invoked 14 times (one for each step)
+            assert callback.call_count == 14
 
             # Verify callback was called with correct parameters
             first_call = callback.call_args_list[0]
@@ -55,7 +55,7 @@ class TestScannerProgressCallback:
 
             assert isinstance(step_name, str)
             assert step_number == 1
-            assert total_steps == 12
+            assert total_steps == 14
             assert isinstance(item_counts, dict)
 
     def test_progress_callback_includes_item_counts(self):
