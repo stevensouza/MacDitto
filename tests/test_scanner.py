@@ -214,19 +214,25 @@ class TestScanShellConfigs:
                 return "export PATH=$PATH:/usr/local/bin"
             elif '.bash_profile' in path:
                 return "source ~/.bashrc"
+            elif '.claude/CLAUDE.md' in path:
+                return "# Global Claude Instructions"
             return None
 
         mock_read_file.side_effect = read_file_side_effect
 
         configs = scanner.scan_shell_configs()
 
-        assert len(configs) == 2
+        assert len(configs) == 3
         config_names = [c.filename for c in configs]
         assert '.zshrc' in config_names
         assert '.bash_profile' in config_names
+        assert '.claude/CLAUDE.md' in config_names
 
         zshrc = next(c for c in configs if c.filename == '.zshrc')
         assert 'export PATH' in zshrc.content
+
+        claude_md = next(c for c in configs if c.filename == '.claude/CLAUDE.md')
+        assert '# Global Claude Instructions' in claude_md.content
 
 
 class TestScanGitConfig:

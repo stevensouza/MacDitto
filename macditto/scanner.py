@@ -289,6 +289,7 @@ class Scanner:
             '.bash_profile',
             '.bashrc',
             '.profile',
+            '.claude/CLAUDE.md',
         ]
 
         for config_file in config_files:
