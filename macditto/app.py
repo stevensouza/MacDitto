@@ -1063,7 +1063,8 @@ Machine: {profile.machine_name}
     # Shell configs
     for cfg in profile.shell_configs:
         md += f"## {cfg.filename}\n\n"
-        md += f"```bash\n{cfg.content}\n```\n\n"
+        lang = "markdown" if cfg.filename.endswith('.md') else "bash"
+        md += f"```{lang}\n{cfg.content}\n```\n\n"
 
     # Git config
     if profile.git_config:
