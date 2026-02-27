@@ -1867,7 +1867,7 @@ code {
 /* Navbar logo + illustration group */
 .logo-group {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 0.75rem;
 }
 
@@ -1876,6 +1876,7 @@ code {
     align-items: center;
     line-height: 0;
     opacity: 0.9;
+    margin-bottom: 9px;
 }
 
 /* Flow arrow animation (navbar + empty-state) */
