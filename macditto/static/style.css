@@ -1864,6 +1864,22 @@ code {
     flex-wrap: wrap;
 }
 
+/* Brand Hero Illustration */
+.brand-hero {
+    display: flex;
+    justify-content: center;
+    margin: 0.5rem 0 1rem;
+}
+
+.brand-hero svg .flow-arrow {
+    stroke-dasharray: 6 4;
+    animation: flow 1.2s linear infinite;
+}
+
+@keyframes flow {
+    to { stroke-dashoffset: -20; }
+}
+
 /* Table Scroll Wrapper */
 .table-scroll-wrapper {
     overflow-x: auto;
