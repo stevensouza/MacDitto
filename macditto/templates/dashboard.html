@@ -7,47 +7,6 @@
     {% if profile %}
         <div class="header">
             <h2>Mac Configuration</h2>
-            <div class="brand-hero">
-                <svg width="160" height="50" viewBox="0 0 240 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <filter id="cyan-glow-compact" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                        <filter id="amber-glow-compact" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                    </defs>
-                    <!-- Left Laptop (Source) - Cyan -->
-                    <g filter="url(#cyan-glow-compact)">
-                        <rect x="15" y="20" width="35" height="24" rx="2" stroke="var(--cyan-bright)" stroke-width="1.5" fill="var(--bg-tertiary)" opacity="0.8"/>
-                        <polygon points="18,45 52,45 54,52 16,52" fill="var(--bg-tertiary)" stroke="var(--cyan-bright)" stroke-width="1.5" opacity="0.7"/>
-                        <rect x="30" y="52" width="6" height="8" fill="var(--bg-tertiary)" stroke="var(--cyan-bright)" stroke-width="1" opacity="0.5"/>
-                    </g>
-                    <!-- Arrow + Data Flow -->
-                    <defs>
-                        <linearGradient id="arrow-grad-compact" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stop-color="var(--cyan-bright)"/>
-                            <stop offset="100%" stop-color="var(--amber-bright)"/>
-                        </linearGradient>
-                    </defs>
-                    <line x1="55" y1="44" x2="185" y2="44" stroke="url(#arrow-grad-compact)" stroke-width="2" stroke-linecap="round" class="flow-arrow"/>
-                    <polygon points="185,44 178,40 181,44 178,48" fill="var(--amber-bright)"/>
-                    <!-- Right Laptop (Destination) - Amber -->
-                    <g filter="url(#amber-glow-compact)">
-                        <rect x="190" y="20" width="35" height="24" rx="2" stroke="var(--amber-bright)" stroke-width="1.5" fill="var(--bg-tertiary)" opacity="0.8"/>
-                        <polygon points="193,45 227,45 229,52 191,52" fill="var(--bg-tertiary)" stroke="var(--amber-bright)" stroke-width="1.5" opacity="0.7"/>
-                        <rect x="205" y="52" width="6" height="8" fill="var(--bg-tertiary)" stroke="var(--amber-bright)" stroke-width="1" opacity="0.5"/>
-                    </g>
-                </svg>
-            </div>
             {% if is_historical %}
             <div class="alert-historical">
                 <div>
@@ -378,39 +337,34 @@ Examples:
                                 <feMergeNode in="SourceGraphic"/>
                             </feMerge>
                         </filter>
-                    </defs>
-
-                    <!-- Left Laptop (Source) - Cyan -->
-                    <g filter="url(#cyan-glow)">
-                        <!-- Screen -->
-                        <rect x="15" y="20" width="35" height="24" rx="2" stroke="var(--cyan-bright)" stroke-width="1.5" fill="var(--bg-tertiary)" opacity="0.8"/>
-                        <!-- Base trapezoid -->
-                        <polygon points="18,45 52,45 54,52 16,52" fill="var(--bg-tertiary)" stroke="var(--cyan-bright)" stroke-width="1.5" opacity="0.7"/>
-                        <!-- Stand -->
-                        <rect x="30" y="52" width="6" height="8" fill="var(--bg-tertiary)" stroke="var(--cyan-bright)" stroke-width="1" opacity="0.5"/>
-                    </g>
-
-                    <!-- Arrow + Data Flow -->
-                    <defs>
                         <linearGradient id="arrow-grad" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%" stop-color="var(--cyan-bright)"/>
                             <stop offset="100%" stop-color="var(--amber-bright)"/>
                         </linearGradient>
                     </defs>
+
+                    <!-- C1 label -->
+                    <text x="32" y="14" text-anchor="middle" font-family="'Outfit',sans-serif" font-size="10" font-weight="600" fill="var(--cyan-bright)" opacity="0.9">C1</text>
+                    <!-- Left Laptop (Source) - Cyan -->
+                    <g filter="url(#cyan-glow)">
+                        <rect x="15" y="20" width="35" height="24" rx="2" stroke="var(--cyan-bright)" stroke-width="1.5" fill="var(--bg-tertiary)" opacity="0.8"/>
+                        <polygon points="18,45 52,45 54,52 16,52" fill="var(--bg-tertiary)" stroke="var(--cyan-bright)" stroke-width="1.5" opacity="0.7"/>
+                        <rect x="30" y="52" width="6" height="8" fill="var(--bg-tertiary)" stroke="var(--cyan-bright)" stroke-width="1" opacity="0.5"/>
+                    </g>
+
                     <!-- Animated dashed line -->
-                    <line x1="55" y1="44" x2="185" y2="44" stroke="url(#arrow-grad)" stroke-width="2" stroke-linecap="round" class="flow-arrow"/>
-                    <!-- Arrowhead -->
-                    <polygon points="185,44 178,40 181,44 178,48" fill="var(--amber-bright)"/>
+                    <line x1="55" y1="44" x2="182" y2="44" stroke="url(#arrow-grad)" stroke-width="2.5" stroke-linecap="round" class="flow-arrow"/>
+                    <!-- Arrowhead (larger) -->
+                    <polygon points="192,44 179,37 183,44 179,51" fill="var(--amber-bright)"/>
 
                     <!-- Right Laptop (Destination) - Amber -->
                     <g filter="url(#amber-glow)">
-                        <!-- Screen -->
-                        <rect x="190" y="20" width="35" height="24" rx="2" stroke="var(--amber-bright)" stroke-width="1.5" fill="var(--bg-tertiary)" opacity="0.8"/>
-                        <!-- Base trapezoid -->
-                        <polygon points="193,45 227,45 229,52 191,52" fill="var(--bg-tertiary)" stroke="var(--amber-bright)" stroke-width="1.5" opacity="0.7"/>
-                        <!-- Stand -->
-                        <rect x="205" y="52" width="6" height="8" fill="var(--bg-tertiary)" stroke="var(--amber-bright)" stroke-width="1" opacity="0.5"/>
+                        <rect x="194" y="20" width="35" height="24" rx="2" stroke="var(--amber-bright)" stroke-width="1.5" fill="var(--bg-tertiary)" opacity="0.8"/>
+                        <polygon points="197,45 231,45 233,52 195,52" fill="var(--bg-tertiary)" stroke="var(--amber-bright)" stroke-width="1.5" opacity="0.7"/>
+                        <rect x="209" y="52" width="6" height="8" fill="var(--bg-tertiary)" stroke="var(--amber-bright)" stroke-width="1" opacity="0.5"/>
                     </g>
+                    <!-- C2 label -->
+                    <text x="211" y="14" text-anchor="middle" font-family="'Outfit',sans-serif" font-size="10" font-weight="600" fill="var(--amber-bright)" opacity="0.9">C2</text>
                 </svg>
             </div>
             <h2>No scan loaded</h2>
