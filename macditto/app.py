@@ -849,6 +849,10 @@ echo "Copying shell configurations..."
 
     for shell_config in profile.shell_configs:
         script += f'# {shell_config.filename}\n'
+        # Create parent directory if nested (e.g. .claude/commands/)
+        parent = os.path.dirname(shell_config.filename)
+        if parent:
+            script += f'mkdir -p ~/{parent}\n'
         script += f'cp shell_configs/{shell_config.filename} ~/{shell_config.filename}\n'
 
     # Copy git config
@@ -1063,7 +1067,8 @@ Machine: {profile.machine_name}
     # Shell configs
     for cfg in profile.shell_configs:
         md += f"## {cfg.filename}\n\n"
-        lang = "markdown" if cfg.filename.endswith('.md') else "bash"
+        lang = "markdown" if cfg.filename.endswith('.md') else \
+               "json" if cfg.filename.endswith('.json') else "bash"
         md += f"```{lang}\n{cfg.content}\n```\n\n"
 
     # Git config

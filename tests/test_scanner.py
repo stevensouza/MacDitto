@@ -208,31 +208,64 @@ class TestScanShellConfigs:
 
     @patch('macditto.scanner.read_file')
     def test_scan_shell_configs(self, mock_read_file, scanner):
-        """Should scan for shell config files."""
+        """Should scan for shell config files and Claude config files."""
         def read_file_side_effect(path):
             if '.zshrc' in path:
                 return "export PATH=$PATH:/usr/local/bin"
             elif '.bash_profile' in path:
                 return "source ~/.bashrc"
-            elif '.claude/CLAUDE.md' in path:
+            elif 'CLAUDE.md' in path:
                 return "# Global Claude Instructions"
+            elif 'settings.json' in path:
+                return '{"model": "opus"}'
+            elif 'statusline-command.sh' in path:
+                return "echo statusline"
             return None
 
         mock_read_file.side_effect = read_file_side_effect
 
         configs = scanner.scan_shell_configs()
 
-        assert len(configs) == 3
+        assert len(configs) == 5
         config_names = [c.filename for c in configs]
         assert '.zshrc' in config_names
         assert '.bash_profile' in config_names
         assert '.claude/CLAUDE.md' in config_names
+        assert '.claude/settings.json' in config_names
+        assert '.claude/statusline-command.sh' in config_names
 
         zshrc = next(c for c in configs if c.filename == '.zshrc')
         assert 'export PATH' in zshrc.content
 
         claude_md = next(c for c in configs if c.filename == '.claude/CLAUDE.md')
         assert '# Global Claude Instructions' in claude_md.content
+
+        settings = next(c for c in configs if c.filename == '.claude/settings.json')
+        assert '"model": "opus"' in settings.content
+
+    @patch('macditto.scanner.os.listdir')
+    @patch('macditto.scanner.os.path.isfile')
+    @patch('macditto.scanner.os.path.isdir')
+    @patch('macditto.scanner.read_file')
+    def test_scan_claude_commands_directory(self, mock_read_file, mock_isdir,
+                                            mock_isfile, mock_listdir, scanner):
+        """Should scan files in ~/.claude/commands/ directory."""
+        def read_file_side_effect(path):
+            if 'commands/review.md' in path:
+                return "# Review command"
+            return None
+
+        mock_read_file.side_effect = read_file_side_effect
+        mock_isdir.return_value = True
+        mock_isfile.return_value = True
+        mock_listdir.return_value = ['review.md']
+
+        configs = scanner.scan_shell_configs()
+
+        cmd_configs = [c for c in configs if 'commands/' in c.filename]
+        assert len(cmd_configs) == 1
+        assert cmd_configs[0].filename == '.claude/commands/review.md'
+        assert '# Review command' in cmd_configs[0].content
 
 
 class TestScanGitConfig:
