@@ -274,9 +274,11 @@ class Scanner:
 
     def scan_shell_configs(self) -> List[ShellConfig]:
         """
-        Scan for shell configuration files.
+        Scan for shell configuration files and Claude Code config files.
 
-        Looks for: .zshrc, .zprofile, .bash_profile, .bashrc, .profile
+        Looks for: .zshrc, .zprofile, .bash_profile, .bashrc, .profile,
+        and Claude Code files (.claude/CLAUDE.md, settings.json, keybindings.json,
+        statusline-command.sh, commands/*.md)
 
         Returns:
             List of ShellConfig objects with file contents
@@ -290,6 +292,9 @@ class Scanner:
             '.bashrc',
             '.profile',
             '.claude/CLAUDE.md',
+            '.claude/settings.json',
+            '.claude/keybindings.json',
+            '.claude/statusline-command.sh',
         ]
 
         for config_file in config_files:
@@ -301,6 +306,20 @@ class Scanner:
                     path=file_path,
                     content=content
                 ))
+
+        # Scan Claude custom commands directory
+        claude_commands_dir = os.path.join(self.home_dir, '.claude', 'commands')
+        if os.path.isdir(claude_commands_dir):
+            for cmd_file in sorted(os.listdir(claude_commands_dir)):
+                cmd_path = os.path.join(claude_commands_dir, cmd_file)
+                if os.path.isfile(cmd_path):
+                    content = read_file(cmd_path)
+                    if content is not None:
+                        shell_configs.append(ShellConfig(
+                            filename=f'.claude/commands/{cmd_file}',
+                            path=cmd_path,
+                            content=content
+                        ))
 
         return shell_configs
 
