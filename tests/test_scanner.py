@@ -220,19 +220,28 @@ class TestScanShellConfigs:
                 return '{"model": "opus"}'
             elif 'statusline-command.sh' in path:
                 return "echo statusline"
+            elif 'installed_plugins.json' in path:
+                return '{"plugins": {}}'
+            elif 'blocklist.json' in path:
+                return '{"blocked": []}'
+            elif 'known_marketplaces.json' in path:
+                return '{"marketplaces": []}'
             return None
 
         mock_read_file.side_effect = read_file_side_effect
 
         configs = scanner.scan_shell_configs()
 
-        assert len(configs) == 5
+        assert len(configs) == 8
         config_names = [c.filename for c in configs]
         assert '.zshrc' in config_names
         assert '.bash_profile' in config_names
         assert '.claude/CLAUDE.md' in config_names
         assert '.claude/settings.json' in config_names
         assert '.claude/statusline-command.sh' in config_names
+        assert '.claude/plugins/installed_plugins.json' in config_names
+        assert '.claude/plugins/blocklist.json' in config_names
+        assert '.claude/plugins/known_marketplaces.json' in config_names
 
         zshrc = next(c for c in configs if c.filename == '.zshrc')
         assert 'export PATH' in zshrc.content
@@ -266,6 +275,43 @@ class TestScanShellConfigs:
         assert len(cmd_configs) == 1
         assert cmd_configs[0].filename == '.claude/commands/review.md'
         assert '# Review command' in cmd_configs[0].content
+
+    @patch('macditto.scanner.os.listdir')
+    @patch('macditto.scanner.os.path.isfile')
+    @patch('macditto.scanner.os.path.isdir')
+    @patch('macditto.scanner.read_file')
+    def test_scan_claude_project_memory_files(self, mock_read_file, mock_isdir,
+                                               mock_isfile, mock_listdir, scanner):
+        """Should scan MEMORY.md files in ~/.claude/projects/*/memory/."""
+        def read_file_side_effect(path):
+            if 'memory/MEMORY.md' in path:
+                return "# Project Memory"
+            return None
+
+        mock_read_file.side_effect = read_file_side_effect
+
+        def isdir_side_effect(path):
+            if path.endswith('commands'):
+                return False
+            if path.endswith('projects'):
+                return True
+            return False
+
+        mock_isdir.side_effect = isdir_side_effect
+
+        def isfile_side_effect(path):
+            return 'MEMORY.md' in path
+
+        mock_isfile.side_effect = isfile_side_effect
+        mock_listdir.return_value = ['project-one', 'project-two']
+
+        configs = scanner.scan_shell_configs()
+
+        memory_configs = [c for c in configs if 'memory/MEMORY.md' in c.filename]
+        assert len(memory_configs) == 2
+        assert memory_configs[0].filename == '.claude/projects/project-one/memory/MEMORY.md'
+        assert memory_configs[1].filename == '.claude/projects/project-two/memory/MEMORY.md'
+        assert '# Project Memory' in memory_configs[0].content
 
 
 class TestScanGitConfig:
