@@ -278,7 +278,7 @@ class Scanner:
 
         Looks for: .zshrc, .zprofile, .bash_profile, .bashrc, .profile,
         and Claude Code files (.claude/CLAUDE.md, settings.json, keybindings.json,
-        statusline-command.sh, commands/*.md)
+        statusline-command.sh, commands/*.md, plugins config, project memory files)
 
         Returns:
             List of ShellConfig objects with file contents
@@ -295,6 +295,9 @@ class Scanner:
             '.claude/settings.json',
             '.claude/keybindings.json',
             '.claude/statusline-command.sh',
+            '.claude/plugins/installed_plugins.json',
+            '.claude/plugins/blocklist.json',
+            '.claude/plugins/known_marketplaces.json',
         ]
 
         for config_file in config_files:
@@ -318,6 +321,23 @@ class Scanner:
                         shell_configs.append(ShellConfig(
                             filename=f'.claude/commands/{cmd_file}',
                             path=cmd_path,
+                            content=content
+                        ))
+
+        # Scan Claude project memory files
+        claude_projects_dir = os.path.join(self.home_dir, '.claude', 'projects')
+        if os.path.isdir(claude_projects_dir):
+            for project_dir in sorted(os.listdir(claude_projects_dir)):
+                memory_path = os.path.join(
+                    claude_projects_dir, project_dir, 'memory', 'MEMORY.md'
+                )
+                if os.path.isfile(memory_path):
+                    content = read_file(memory_path)
+                    if content is not None:
+                        relative = f'.claude/projects/{project_dir}/memory/MEMORY.md'
+                        shell_configs.append(ShellConfig(
+                            filename=relative,
+                            path=memory_path,
                             content=content
                         ))
 
